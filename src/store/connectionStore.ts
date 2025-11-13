@@ -91,7 +91,7 @@ export const useConnectionStore = create<ConnectionState>()(
             onRehydrateStorage: () => {
                 return () => {
                     // isso roda DEPOIS de ler do AsyncStorage
-                    useConnectionStore.setState({ hydrated: true });
+                    useConnectionStore.setState({ hydrated: true, isTesting: false });
                 };
             },
         }

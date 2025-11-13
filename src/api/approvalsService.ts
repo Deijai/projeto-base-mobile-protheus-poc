@@ -46,25 +46,34 @@ export const approvalsService = {
         searchkey?: string;
         documentBranch?: string;
     }): Promise<ApprovalsListResponse> {
-        const res = await api.get('backofficeapprovals/api/com/approvals/v1/approvalsList', {
-            params: {
-                page,
-                documentType,
-                documentStatus,
-                initDate,
-                endDate,
-                searchkey,
-                documentBranch,
-            },
-        });
+        const params: any = {
+            page,
+            documentType,
+            documentStatus,
+        };
 
-        console.log('Approvals list response:', res);
+        if (initDate) params.initDate = initDate;
+        if (endDate) params.endDate = endDate;
+        if (searchkey) params.searchkey = searchkey;
+        if (documentBranch) params.documentBranch = documentBranch;
+
+        const res = await api.get('backofficeapprovals/api/com/approvals/v1/approvalsList', {
+            params,
+        });
 
         return res.data as ApprovalsListResponse;
     },
 
+    // src/api/approvalsService.ts
     async batchApprove(documentType: string, payload: any) {
-        const res = await api.post(`/api/com/approvals/v1/batchApprovals/${documentType}`, payload);
+        const docTypePath = (documentType || '').trim().toUpperCase();
+
+        const url = `backofficeapprovals/api/com/approvals/v1/batchApprovals/${docTypePath}`;
+        console.log('batchApprove URL =>', url);
+        console.log('batchApprove payload =>', JSON.stringify(payload, null, 2));
+
+        const res = await api.put(url, payload);
         return res.data;
     },
+
 };

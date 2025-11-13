@@ -175,7 +175,7 @@ export class RestValidatorService {
 
         // 2) se não informou porta, tenta portas comuns
         if (!config.port || config.port.trim() === '') {
-            const commonPorts = ['8080', '8081', '8090', '9090', '3000'];
+            const commonPorts = ['8080', '8081', '8090', '9090', '3000', '17115'];
             for (const port of commonPorts) {
                 const cfg = { ...config, port };
                 result = await this.testConnection(cfg);

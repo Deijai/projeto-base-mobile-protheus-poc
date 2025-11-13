@@ -57,6 +57,7 @@ export default function RootLayout() {
   }, [hydrated, biometricEnabled]);
 
   useEffect(() => {
+    //clearStorage();
     // debugStorage(); // mostra tudo
     //debugStorage('connection-storage');
     setIsNavigationReady(true);

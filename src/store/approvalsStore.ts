@@ -23,6 +23,11 @@ type ApprovalsState = {
     fetchDocuments: (filters: FetchParams, reset?: boolean) => Promise<void>;
     toggleSelect: (doc: ApprovalDocument) => void;
     clearSelection: () => void;
+    batchProcess: (params: {
+        action: 'approve' | 'reject';
+        justification?: string;
+        documents: ApprovalDocument[];
+    }) => Promise<void>;
 };
 
 export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
@@ -58,7 +63,6 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
                 documentBranch,
             });
 
-            console.log('res: ', res);
 
             const items = Array.isArray(res.documents) ? res.documents : [];
             const hasNext = !!res.hasNext;
@@ -98,6 +102,69 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
             });
         }
     },
+
+    batchProcess: async ({
+        action,
+        justification = '',
+        documents,
+    }: {
+        action: 'approve' | 'reject';
+        justification?: string;
+        documents: ApprovalDocument[];
+    }) => {
+        const { lastFilters, toggleSelect, fetchDocuments } = get();
+
+        const toApprove = action === 'approve';
+
+        // Agrupa: tipo → branch → docs[]
+        const grouped: Record<string, Record<string, any[]>> = {};
+
+        documents.forEach((doc) => {
+            const type = (doc.documentType || '').trim().toUpperCase(); // SC, PC, IP...
+            const branch = doc.documentBranch;                          // mantém como veio ("D MG 01 ")
+
+            if (!grouped[type]) grouped[type] = {};
+            if (!grouped[type][branch]) grouped[type][branch] = [];
+
+            grouped[type][branch].push({
+                documentId: doc.documentNumber,
+                itemGroup: doc.documentItemGroup || '',
+                justification,
+                toApprove,
+                scrId: doc.scrId,
+            });
+        });
+
+        try {
+            // Chamada por tipo de documento
+            for (const [type, branches] of Object.entries(grouped)) {
+                // 👇 aqui vira exatamente o formato que o backend espera
+                const payload = {
+                    approvals: Object.entries(branches).map(([branch, docs]) => ({
+                        branch,
+                        documents: docs,
+                    })),
+                };
+
+                console.log('Enviando batchApprove:', type, JSON.stringify(payload, null, 2));
+
+                await approvalsService.batchApprove(type, payload);
+            }
+
+            // limpar docs selecionados
+            documents.forEach((d) => toggleSelect(d));
+
+            // recarregar usando os últimos filtros usados
+            if (lastFilters) {
+                await fetchDocuments(lastFilters, true);
+            }
+        } catch (err) {
+            console.error('Erro no batchProcess:', err);
+            throw err;
+        }
+    },
+
+
 
     clearSelection() {
         set({ selectedDocs: [] });

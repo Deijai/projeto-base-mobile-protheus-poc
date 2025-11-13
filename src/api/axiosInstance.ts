@@ -10,7 +10,7 @@ export const api = axios.create();
 async function getSelectedBranchFromStorage() {
     try {
         const raw = await AsyncStorage.getItem('branch-storage');
-        console.log('raw:', raw);
+        //console.log('raw:', raw);
         if (!raw) return null;
 
         const parsed = JSON.parse(raw);
@@ -50,20 +50,20 @@ api.interceptors.request.use(
 
             if (companyCode && code) {
                 // monta exatamente como você falou
-                const tenantId = `${companyCode}, ${code}`.trim();
+                const tenantId = `${companyCode},${code}`.trim();
 
                 console.log('Adicionando tenantId nos headers:', tenantId);
 
                 // se quiser tirar espaços:
                 // const tenantId = `${companyCode}, ${code}`.trim();
 
-                //headers.set('tenantId', tenantId);
+                headers.set('tenantId', tenantId);
             }
         }
 
         config.headers = headers;
 
-        console.log('Config final:', config);
+        //console.log('Config final:', config);
 
         return config;
     },

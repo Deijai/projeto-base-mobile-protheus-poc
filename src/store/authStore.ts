@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
           const response = await authService.login(username, password);
 
-          console.log('response: ', response);
+          //console.log('response: ', response);
 
 
           const user: User = {

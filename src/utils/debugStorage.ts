@@ -12,14 +12,14 @@ export async function debugStorage(key?: string) {
     } else {
         const keys = await AsyncStorage.getAllKeys();
         const entries = await AsyncStorage.multiGet(keys);
-        console.log('📦 STORAGE:');
+        //console.log('📦 STORAGE:');
         entries.forEach(([k, v]) => console.log(k, JSON.parse(v ?? 'null')));
     }
 }
 
 /**
  * Limpa completamente o AsyncStorage.
- * (use com cuidado!)
+ * (use com cuidado!)W
  */
 export async function clearStorage() {
     try {

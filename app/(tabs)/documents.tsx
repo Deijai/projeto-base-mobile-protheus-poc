@@ -1,10 +1,11 @@
-// app/(tabs)/documents.tsx
 import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
 import { ApprovalModal } from '@/src/components/ui/ApprovalModal';
 import { BranchFilterModal } from '@/src/components/ui/BranchFilterModal';
 import { FilterModal } from '@/src/components/ui/FilterModal';
+import { LoadingOverlay } from '@/src/components/ui/LoadingOverlay';
 import { Segment } from '@/src/components/ui/Segment';
 import { useTheme } from '@/src/hooks/useTheme';
+import { useToast } from '@/src/hooks/useToast';
 import { useApprovalsStore } from '@/src/store/approvalsStore';
 import { getDocumentTypeLabel } from '@/src/utils/docLabels';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,8 +28,9 @@ export default function DocumentsScreen() {
         fetchDocuments,
         selectedDocs,
         toggleSelect,
-        hasNext,          // 👈 veio do store
-        lastFilters,      // 👈 pra paginar com os mesmos filtros
+        hasNext,
+        lastFilters,
+        batchProcess,
     } = useApprovalsStore();
 
     const [filterVisible, setFilterVisible] = useState(false);
@@ -41,6 +43,20 @@ export default function DocumentsScreen() {
 
     const [listLoading, setListLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+
+    const toast = useToast();
+    const [processing, setProcessing] = useState(false);
+
+
+    // 🔹 apenas documentos pendentes selecionados
+    const pendingSelectedDocs = selectedDocs.filter(
+        (d) => {
+
+            console.log('d.documentStatus ', d.documentStatus);
+
+            return d.documentStatus === '02'
+        }
+    );
 
     // 1) função central de carregar
     const loadDocs = useCallback(
@@ -70,6 +86,9 @@ export default function DocumentsScreen() {
         loadDocs();
     }, []);
 
+    // ❌ REMOVI o useEffect que ficava fechando o modal automaticamente
+    // porque pode dar "race condition" dependendo de como o store atualiza
+
     // 2) troca de DOC TYPE
     const handleChangeDocType = async (value: 'SC' | 'PC' | 'IP' | 'AE' | 'ALL') => {
         setDocType(value);
@@ -80,7 +99,7 @@ export default function DocumentsScreen() {
                 documentStatus: segment,
                 branches: filteredBranches,
             },
-            true // reset
+            true
         );
         setListLoading(false);
     };
@@ -95,17 +114,17 @@ export default function DocumentsScreen() {
                 documentStatus: value,
                 branches: filteredBranches,
             },
-            true // reset
+            true
         );
         setListLoading(false);
+        // ⭐ ao trocar de segmento, garantimos que o modal feche
+        setApprovalVisible(false);
     };
 
     // 4) infinite scroll
     const handleLoadMore = async () => {
-        // se já ta carregando ou não tem próxima → não faz nada
         if (loading || !hasNext) return;
 
-        // usa os últimos filtros salvos no store
         const filtersToUse =
             lastFilters ||
             ({
@@ -114,8 +133,54 @@ export default function DocumentsScreen() {
                 branches: filteredBranches,
             } as any);
 
-        await fetchDocuments(filtersToUse, false); // append
+        await fetchDocuments(filtersToUse, false);
     };
+
+    // handler de detalhe (depois você troca por router.push)
+    const handleOpenDetail = (item: any) => {
+        console.log('Detalhe do documento', item.scrId);
+        // ex futuro:
+        // router.push({ pathname: '/document-detail', params: { id: item.scrId } });
+    };
+
+    // ⭐ handlers de abrir modal (com log pra vc ver no console)
+    const openApprovalModal = () => {
+        console.log('Abrindo modal de aprovação, docs:', pendingSelectedDocs);
+        if (segment !== '02') return;
+        if (pendingSelectedDocs.length === 0) return;
+
+        setApprovalVisible(true);
+    };
+
+
+    // envia aprovações/reprovações em lote
+    const handleApprovalConfirm = async ({ action, justification, documents }: any) => {
+        try {
+            setProcessing(true);
+
+            await batchProcess({
+                action,
+                justification,
+                documents,
+            });
+
+            toast.success(
+                action === 'approve'
+                    ? `Documentos aprovados com sucesso`
+                    : `Documentos reprovados com sucesso`
+            );
+
+            setApprovalVisible(false);
+
+        } catch (e: any) {
+            console.error('Erro ao aprovar/reprovar', e);
+            toast.error(`Erro ao executar ação: ${e?.message ?? e}`);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+
 
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
@@ -246,17 +311,24 @@ export default function DocumentsScreen() {
                     const hasME = item.measurements && item.measurements.length > 0;
                     const hasCT = item.contracts && item.contracts.length > 0;
 
+                    const isPending = item.documentStatus === '02';
+
                     return (
-                        <TouchableOpacity
+                        <View
                             style={[
                                 styles.card,
                                 { backgroundColor: theme.surface, borderColor: theme.border },
                                 isSelected && { borderColor: theme.primary, borderWidth: 2 },
                             ]}
-                            onPress={() => toggleSelect(item)}
                         >
                             <View style={{ flex: 1, gap: 4 }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <View
+                                    style={{
+                                        flexDirection: 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                    }}
+                                >
                                     <Text style={[styles.docId, { color: theme.text }]}>
                                         {item.documentNumber}
                                     </Text>
@@ -304,39 +376,150 @@ export default function DocumentsScreen() {
 
                                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                                     {hasPR && (
-                                        <View style={[styles.smallBadge, { backgroundColor: theme.primary + '22' }]}>
-                                            <Text style={{ fontSize: 10, color: theme.primary }}>SC detalhada</Text>
+                                        <View
+                                            style={[
+                                                styles.smallBadge,
+                                                { backgroundColor: theme.primary + '22' },
+                                            ]}
+                                        >
+                                            <Text style={{ fontSize: 10, color: theme.primary }}>
+                                                SC detalhada
+                                            </Text>
                                         </View>
                                     )}
                                     {hasPO && (
-                                        <View style={[styles.smallBadge, { backgroundColor: theme.primary + '22' }]}>
-                                            <Text style={{ fontSize: 10, color: theme.primary }}>Pedido vinculado</Text>
+                                        <View
+                                            style={[
+                                                styles.smallBadge,
+                                                { backgroundColor: theme.primary + '22' },
+                                            ]}
+                                        >
+                                            <Text style={{ fontSize: 10, color: theme.primary }}>
+                                                Pedido vinculado
+                                            </Text>
                                         </View>
                                     )}
                                     {hasWR && (
-                                        <View style={[styles.smallBadge, { backgroundColor: theme.primary + '22' }]}>
-                                            <Text style={{ fontSize: 10, color: theme.primary }}>Req. almox.</Text>
+                                        <View
+                                            style={[
+                                                styles.smallBadge,
+                                                { backgroundColor: theme.primary + '22' },
+                                            ]}
+                                        >
+                                            <Text style={{ fontSize: 10, color: theme.primary }}>
+                                                Req. almox.
+                                            </Text>
                                         </View>
                                     )}
                                     {hasME && (
-                                        <View style={[styles.smallBadge, { backgroundColor: theme.primary + '22' }]}>
-                                            <Text style={{ fontSize: 10, color: theme.primary }}>Medições</Text>
+                                        <View
+                                            style={[
+                                                styles.smallBadge,
+                                                { backgroundColor: theme.primary + '22' },
+                                            ]}
+                                        >
+                                            <Text style={{ fontSize: 10, color: theme.primary }}>
+                                                Mediões
+                                            </Text>
                                         </View>
                                     )}
                                     {hasCT && (
-                                        <View style={[styles.smallBadge, { backgroundColor: theme.primary + '22' }]}>
-                                            <Text style={{ fontSize: 10, color: theme.primary }}>Contratos</Text>
+                                        <View
+                                            style={[
+                                                styles.smallBadge,
+                                                { backgroundColor: theme.primary + '22' },
+                                            ]}
+                                        >
+                                            <Text style={{ fontSize: 10, color: theme.primary }}>
+                                                Contratos
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                {/* linha final: botão Detalhe + checkbox (se pendente) */}
+                                <View
+                                    style={{
+                                        flexDirection: 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        marginTop: 6,
+                                    }}
+                                >
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.detailBtn,
+                                            {
+                                                borderColor: theme.primary,
+                                                backgroundColor: theme.primary + '12',
+                                            },
+                                        ]}
+                                        onPress={() => handleOpenDetail(item)}
+                                    >
+                                        <Text
+                                            style={{
+                                                color: theme.primary,
+                                                fontSize: 12,
+                                                fontWeight: '600',
+                                            }}
+                                        >
+                                            Detalhe
+                                        </Text>
+                                        <Ionicons
+                                            name="chevron-forward"
+                                            size={14}
+                                            color={theme.primary}
+                                            style={{ marginLeft: 4 }}
+                                        />
+                                    </TouchableOpacity>
+
+                                    {isPending ? (
+                                        <TouchableOpacity
+                                            onPress={() => toggleSelect(item)}
+                                            style={styles.checkboxArea}
+                                        >
+                                            <Ionicons
+                                                name={
+                                                    isSelected
+                                                        ? 'checkbox-outline'
+                                                        : 'square-outline'
+                                                }
+                                                size={20}
+                                                color={
+                                                    isSelected ? theme.primary : theme.muted
+                                                }
+                                            />
+                                            <Text
+                                                style={{
+                                                    marginLeft: 4,
+                                                    fontSize: 12,
+                                                    color: theme.muted,
+                                                }}
+                                            >
+                                                {isSelected ? 'Selecionado' : 'Selecionar'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <Ionicons
+                                                name="lock-closed-outline"
+                                                size={16}
+                                                color={theme.muted}
+                                            />
+                                            <Text
+                                                style={{
+                                                    marginLeft: 4,
+                                                    fontSize: 11,
+                                                    color: theme.muted,
+                                                }}
+                                            >
+                                                Não disponível para aprovação
+                                            </Text>
                                         </View>
                                     )}
                                 </View>
                             </View>
-
-                            {isSelected ? (
-                                <Ionicons name="checkmark-circle" size={22} color={theme.primary} />
-                            ) : (
-                                <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-                            )}
-                        </TouchableOpacity>
+                        </View>
                     );
                 }}
                 onEndReached={handleLoadMore}
@@ -348,20 +531,22 @@ export default function DocumentsScreen() {
                 }
             />
 
-            {/* ações de aprovação */}
-            {selectedDocs.length > 0 && (
+            {/* ações de aprovação - apenas para pendentes */}
+            {segment === '02' && pendingSelectedDocs.length > 0 && (
                 <View style={[styles.bottomBar, { backgroundColor: theme.surface }]}>
                     <TouchableOpacity
                         style={[styles.btn, { backgroundColor: theme.success }]}
-                        onPress={() => setApprovalVisible(true)}
+                        onPress={openApprovalModal}      // ⭐
                     >
                         <Ionicons name="checkmark" size={20} color="#fff" />
-                        <Text style={styles.btnText}>Aprovar ({selectedDocs.length})</Text>
+                        <Text style={styles.btnText}>
+                            Aprovar ({pendingSelectedDocs.length})
+                        </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.btn, { backgroundColor: theme.error }]}
-                        onPress={() => setApprovalVisible(true)}
+                        onPress={openApprovalModal}      // ⭐
                     >
                         <Ionicons name="close" size={20} color="#fff" />
                         <Text style={styles.btnText}>Reprovar</Text>
@@ -408,11 +593,20 @@ export default function DocumentsScreen() {
                 }}
             />
 
+            {/* ⭐ aqui o modal recebe o estado direto */}
             <ApprovalModal
                 visible={approvalVisible}
                 onClose={() => setApprovalVisible(false)}
-                documents={selectedDocs}
+                documents={pendingSelectedDocs}
+                onConfirm={handleApprovalConfirm}
             />
+
+            <LoadingOverlay
+                isbg
+                visible={processing}
+                text="Processando..."
+            />
+
         </ThemedSafeArea>
     );
 }
@@ -491,5 +685,17 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: 10,
         paddingVertical: 3,
+    },
+    detailBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+    },
+    checkboxArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 });
