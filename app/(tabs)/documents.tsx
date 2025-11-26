@@ -1,3 +1,4 @@
+// app/(tabs)/documents.tsx - COM NAVEGAÇÃO CORRIGIDA
 import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
 import { ApprovalModal } from '@/src/components/ui/ApprovalModal';
 import { BranchFilterModal } from '@/src/components/ui/BranchFilterModal';
@@ -9,6 +10,7 @@ import { useToast } from '@/src/hooks/useToast';
 import { useApprovalsStore } from '@/src/store/approvalsStore';
 import { getDocumentTypeLabel } from '@/src/utils/docLabels';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -22,6 +24,7 @@ import {
 
 export default function DocumentsScreen() {
     const { theme } = useTheme();
+    const router = useRouter(); // 👈 ADICIONA O ROUTER
     const {
         documents,
         loading,
@@ -47,18 +50,10 @@ export default function DocumentsScreen() {
     const toast = useToast();
     const [processing, setProcessing] = useState(false);
 
-
-    // 🔹 apenas documentos pendentes selecionados
     const pendingSelectedDocs = selectedDocs.filter(
-        (d) => {
-
-            console.log('d.documentStatus ', d.documentStatus);
-
-            return d.documentStatus === '02'
-        }
+        (d) => d.documentStatus === '02'
     );
 
-    // 1) função central de carregar
     const loadDocs = useCallback(
         async (opts?: { isRefresh?: boolean }) => {
             const { isRefresh } = opts || {};
@@ -81,15 +76,10 @@ export default function DocumentsScreen() {
         [docType, segment, filteredBranches, fetchDocuments]
     );
 
-    // primeira carga
     useEffect(() => {
         loadDocs();
     }, []);
 
-    // ❌ REMOVI o useEffect que ficava fechando o modal automaticamente
-    // porque pode dar "race condition" dependendo de como o store atualiza
-
-    // 2) troca de DOC TYPE
     const handleChangeDocType = async (value: 'SC' | 'PC' | 'IP' | 'AE' | 'ALL') => {
         setDocType(value);
         setListLoading(true);
@@ -104,7 +94,6 @@ export default function DocumentsScreen() {
         setListLoading(false);
     };
 
-    // 3) troca de STATUS
     const handleChangeSegment = async (value: '02' | '03' | '06') => {
         setSegment(value);
         setListLoading(true);
@@ -117,11 +106,9 @@ export default function DocumentsScreen() {
             true
         );
         setListLoading(false);
-        // ⭐ ao trocar de segmento, garantimos que o modal feche
         setApprovalVisible(false);
     };
 
-    // 4) infinite scroll
     const handleLoadMore = async () => {
         if (loading || !hasNext) return;
 
@@ -136,14 +123,31 @@ export default function DocumentsScreen() {
         await fetchDocuments(filtersToUse, false);
     };
 
-    // handler de detalhe (depois você troca por router.push)
+    // 🎯 NAVEGAÇÃO CORRIGIDA
     const handleOpenDetail = (item: any) => {
-        console.log('Detalhe do documento', item.scrId);
-        // ex futuro:
-        // router.push({ pathname: '/document-detail', params: { id: item.scrId } });
+        console.log('🔍 Abrindo detalhe do documento:', {
+            scrId: item.scrId,
+            documentNumber: item.documentNumber,
+            documentType: item.documentType,
+        });
+
+        // Navega para a tela de detalhe
+        router.push({
+            pathname: `/document-detail/${item.scrId}` as any,
+            params: {
+                documentType: item.documentType,
+                documentNumber: item.documentNumber,
+                documentStatus: item.documentStatus,
+                documentBranch: item.documentBranch,
+                documentTotal: item.documentTotal.toString(),
+                documentCreated: item.documentCreated,
+                documentGroupAprov: item.documentGroupAprov || '',
+                documentUserName: item.documentUserName || '',
+                documentSymbol: item.documentSymbol || 'R$',
+            }
+        });
     };
 
-    // ⭐ handlers de abrir modal (com log pra vc ver no console)
     const openApprovalModal = () => {
         console.log('Abrindo modal de aprovação, docs:', pendingSelectedDocs);
         if (segment !== '02') return;
@@ -152,8 +156,6 @@ export default function DocumentsScreen() {
         setApprovalVisible(true);
     };
 
-
-    // envia aprovações/reprovações em lote
     const handleApprovalConfirm = async ({ action, justification, documents }: any) => {
         try {
             setProcessing(true);
@@ -179,8 +181,6 @@ export default function DocumentsScreen() {
             setProcessing(false);
         }
     };
-
-
 
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
@@ -437,7 +437,7 @@ export default function DocumentsScreen() {
                                     )}
                                 </View>
 
-                                {/* linha final: botão Detalhe + checkbox (se pendente) */}
+                                {/* 🎯 BOTÃO DETALHE COM NAVEGAÇÃO */}
                                 <View
                                     style={{
                                         flexDirection: 'row',
@@ -536,7 +536,7 @@ export default function DocumentsScreen() {
                 <View style={[styles.bottomBar, { backgroundColor: theme.surface }]}>
                     <TouchableOpacity
                         style={[styles.btn, { backgroundColor: theme.success }]}
-                        onPress={openApprovalModal}      // ⭐
+                        onPress={openApprovalModal}
                     >
                         <Ionicons name="checkmark" size={20} color="#fff" />
                         <Text style={styles.btnText}>
@@ -546,7 +546,7 @@ export default function DocumentsScreen() {
 
                     <TouchableOpacity
                         style={[styles.btn, { backgroundColor: theme.error }]}
-                        onPress={openApprovalModal}      // ⭐
+                        onPress={openApprovalModal}
                     >
                         <Ionicons name="close" size={20} color="#fff" />
                         <Text style={styles.btnText}>Reprovar</Text>
@@ -593,7 +593,6 @@ export default function DocumentsScreen() {
                 }}
             />
 
-            {/* ⭐ aqui o modal recebe o estado direto */}
             <ApprovalModal
                 visible={approvalVisible}
                 onClose={() => setApprovalVisible(false)}

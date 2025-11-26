@@ -1,4 +1,4 @@
-// app/(auth)/signin.tsx
+// app/(auth)/signin.tsx - COM TOGGLE DE BIOMETRIA (VERSÃO FUNCIONAL)
 import { ThemedView } from '@/src/components/layout/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -42,6 +42,9 @@ export default function SignInScreen() {
     const [loading, setLoading] = useState(false);
     const [bioLoading, setBioLoading] = useState(false);
 
+    // ✅ Estado local do toggle (não afeta o store até login)
+    const [wantsBiometric, setWantsBiometric] = useState(biometricEnabled);
+
     const handleLogin = async () => {
         if (!restOk) {
             toast.error('Configure o endereço REST primeiro.');
@@ -63,28 +66,32 @@ export default function SignInScreen() {
             return;
         }
 
-        // 🚀 chegou aqui: login com user/senha deu certo
-        // se biometria estiver habilitada → já pede na sequência
-        if (biometricEnabled) {
-            setBioLoading(true);
-            const bioOk = await biometricLogin();
-            setBioLoading(false);
+        // ✅ Após login bem-sucedido, verifica se usuário quer ativar biometria
+        if (wantsBiometric) {
+            const result = await enableBiometric();
 
-            if (!bioOk) {
-                // não bloqueia o usuário, só avisa
-                toast.error('Não foi possível autenticar com biometria agora.');
+            if (result.ok) {
+                toast.success('Biometria ativada! ✅');
             } else {
-                toast.success('Autenticado com biometria ✅');
+                // Não conseguiu ativar, mostra erro específico
+                switch (result.reason) {
+                    case 'no-hardware':
+                        toast.error('Este dispositivo não tem biometria disponível.');
+                        break;
+                    case 'not-enrolled':
+                        toast.error('Cadastre Face ID/Touch ID nas configurações do iPhone primeiro.');
+                        break;
+                    default:
+                        toast.error('Não foi possível ativar biometria.');
+                }
+                setWantsBiometric(false); // Desmarca o toggle
             }
-        } else {
-            toast.success('Bem-vindo 👋');
         }
 
-        // depois disso tudo, manda pra escolha de filial
+        toast.success('Bem-vindo 👋');
         router.replace('/branches');
     };
 
-    // login direto por biometria (quando já está habilitada)
     const handleBiometricLogin = async () => {
         if (!restOk) {
             toast.error('Configure o endereço REST primeiro.');
@@ -104,51 +111,29 @@ export default function SignInScreen() {
         }
     };
 
-    // toggle na própria tela de login
-    const handleToggleBiometric = async (value: boolean) => {
-        if (value) {
-            const result = await enableBiometric(); // { ok, reason }
+    // ✅ Toggle local - só muda o estado, não ativa ainda
+    const handleToggleBiometric = (value: boolean) => {
+        setWantsBiometric(value);
 
-            if (!result.ok) {
-                // força voltar o valor no store
-                disableBiometric();
-
-                switch (result.reason) {
-                    case 'no-refresh':
-                        toast.error('Faça login primeiro para ativar a biometria.');
-                        break;
-                    case 'no-hardware':
-                        toast.error('Este iPhone não liberou Face ID/Touch ID para o app.');
-                        break;
-                    case 'not-enrolled':
-                        toast.error('Ative Face ID / Touch ID nas Configurações do iPhone primeiro.');
-                        break;
-                    default:
-                        toast.error('Biometria/Face ID não disponível neste aparelho.');
-                }
-                return;
-            }
-
-            toast.success('Biometria ativada neste dispositivo.');
-        } else {
-            // desativar
+        // Se já tem biometria ativa e usuário desativou
+        if (!value && biometricEnabled) {
             disableBiometric();
             toast.info('Biometria desativada.');
         }
     };
+
+    const showBiometricButton = biometricEnabled && user?.refreshToken;
+
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
             <ThemedView withBackground>
-                {/* topo com botão de config */}
                 <View style={styles.topBar}>
                     <TouchableOpacity onPress={() => router.push('/config-rest')}>
                         <Ionicons name="settings-outline" size={23} color={theme.primary} />
                     </TouchableOpacity>
                 </View>
 
-                {/* conteúdo principal */}
                 <View style={styles.content}>
-                    {/* logo */}
                     <View style={[styles.logoWrapper, { backgroundColor: '#ffffff' }]}>
                         <Image
                             source={require('../../assets/images/react-logo.png')}
@@ -159,8 +144,45 @@ export default function SignInScreen() {
 
                     <Text style={[styles.title, { color: theme.text }]}>Meu backoffice protheus</Text>
                     <Text style={[styles.subtitle, { color: theme.muted }]}>
-                        Entre com seu usuário Protheus. Se a biometria estiver ativa, ela será pedida após o login.
+                        Entre com seu usuário Protheus.
                     </Text>
+
+                    {/* ✅ Botão de biometria (se já configurado) */}
+                    {showBiometricButton && (
+                        <>
+                            <TouchableOpacity
+                                style={[
+                                    styles.biometricButton,
+                                    { backgroundColor: theme.primary },
+                                ]}
+                                onPress={handleBiometricLogin}
+                                disabled={bioLoading}
+                            >
+                                <Ionicons
+                                    name={
+                                        biometricType === 'face'
+                                            ? 'ios-scan-outline'
+                                            : ('finger-print-outline' as any)
+                                    }
+                                    size={22}
+                                    color="#fff"
+                                />
+                                <Text style={styles.biometricButtonText}>
+                                    {bioLoading
+                                        ? 'Autenticando...'
+                                        : biometricType === 'face'
+                                            ? 'Entrar com Face ID'
+                                            : 'Entrar com digital'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <View style={styles.divider}>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                                <Text style={{ color: theme.muted, paddingHorizontal: 12 }}>ou</Text>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                            </View>
+                        </>
+                    )}
 
                     {/* USER */}
                     <View
@@ -219,14 +241,13 @@ export default function SignInScreen() {
                         </View>
                     </View>
 
-                    {/* esqueci a senha */}
                     <TouchableOpacity onPress={() => router.push('/(auth)/recovery-password')}>
                         <Text style={[styles.forgot, { color: theme.primary }]}>
-                            I forgot my password
+                            Esqueci minha senha
                         </Text>
                     </TouchableOpacity>
 
-                    {/* toggle biometria */}
+                    {/* ✅ TOGGLE DE BIOMETRIA (antes de logar) */}
                     <View
                         style={[
                             styles.biometricRow,
@@ -235,78 +256,40 @@ export default function SignInScreen() {
                     >
                         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flex: 1 }}>
                             <Ionicons
-                                name={
-                                    biometricEnabled
-                                        ? biometricType === 'face'
-                                            ? 'ios-scan-outline'
-                                            : 'finger-print-outline'
-                                        : 'lock-open-outline' as any
-                                }
+                                name="finger-print-outline"
                                 size={20}
                                 color={theme.text}
                             />
                             <View style={{ flex: 1 }}>
                                 <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                    Login com biometria
+                                    Ativar biometria
                                 </Text>
                                 <Text style={{ color: theme.muted, fontSize: 12 }}>
-                                    {biometricEnabled
-                                        ? 'Será solicitado após o login.'
-                                        : 'Ative para usar Face ID / digital.'}
+                                    {wantsBiometric
+                                        ? 'Será ativada após o login'
+                                        : 'Use Face ID / digital nos próximos acessos'}
                                 </Text>
                             </View>
                         </View>
                         <Switch
-                            value={biometricEnabled}
+                            value={wantsBiometric}
                             onValueChange={handleToggleBiometric}
-                            thumbColor={biometricEnabled ? theme.primary : '#fff'}
+                            thumbColor={wantsBiometric ? theme.primary : '#fff'}
                             trackColor={{ false: theme.border, true: theme.primary + '50' }}
                         />
-
                     </View>
 
-                    {/* botão principal */}
                     <TouchableOpacity
                         style={[styles.button, { backgroundColor: theme.primary }]}
                         onPress={handleLogin}
                         disabled={loading || bioLoading}
                     >
                         <Text style={styles.buttonText}>
-                            {loading ? 'Entering...' : 'Continue'}
+                            {loading ? 'Entrando...' : 'Entrar'}
                         </Text>
                     </TouchableOpacity>
-
-                    {/* botão separado de "entrar direto" */}
-                    {biometricEnabled && user?.refreshToken ? (
-                        <TouchableOpacity
-                            style={[
-                                styles.biometricButton,
-                                { backgroundColor: theme.surface, borderColor: theme.border },
-                            ]}
-                            onPress={handleBiometricLogin}
-                            disabled={bioLoading}
-                        >
-                            <Ionicons
-                                name={
-                                    biometricType === 'face'
-                                        ? 'ios-scan-outline'
-                                        : ('finger-print-outline' as any)
-                                }
-                                size={22}
-                                color={theme.text}
-                            />
-                            <Text style={[styles.biometricText, { color: theme.text }]}>
-                                {bioLoading
-                                    ? 'Autenticando...'
-                                    : biometricType === 'face'
-                                        ? 'Entrar com Face ID'
-                                        : 'Entrar com digital'}
-                            </Text>
-                        </TouchableOpacity>
-                    ) : null}
                 </View>
 
-                {/* overlay de loading global */}
                 <LoadingOverlay visible={loading || bioLoading} text="Autenticando..." />
             </ThemedView>
         </ThemedSafeArea>
@@ -347,6 +330,29 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         marginBottom: 4,
     },
+    biometricButton: {
+        marginTop: 8,
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    biometricButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 15,
+    },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 8,
+    },
+    line: {
+        flex: 1,
+        height: 1,
+    },
     inputBox: {
         borderRadius: 20,
         paddingHorizontal: 16,
@@ -383,20 +389,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '600',
         fontSize: 16,
-    },
-    biometricButton: {
-        marginTop: 14,
-        borderRadius: 14,
-        paddingVertical: 11,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-        borderWidth: 1,
-    },
-    biometricText: {
-        fontWeight: '600',
-        fontSize: 14,
     },
     biometricRow: {
         borderWidth: 1,

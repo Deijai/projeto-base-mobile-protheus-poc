@@ -6,6 +6,8 @@ import { useTheme } from '../../src/hooks/useTheme';
 export default function AuthLayout() {
     const { theme } = useTheme();
 
+    // clearStorage()
+
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
             <Stack
