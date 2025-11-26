@@ -1,10 +1,12 @@
 // app/document-detail/[id].tsx - USANDO STORE
 import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
+import { ApprovalModal } from '@/src/components/ui/ApprovalModal';
 import { ItemAdditionalInfoModal } from '@/src/components/ui/ItemAdditionalInfoModal';
 import { ItemHistoryModal } from '@/src/components/ui/ItemHistoryModal';
 import { LoadingOverlay } from '@/src/components/ui/LoadingOverlay';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useToast } from '@/src/hooks/useToast';
+import { useApprovalsStore } from '@/src/store/approvalsStore';
 import { useDocumentDetailStore } from '@/src/store/documentDetailStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -57,7 +59,10 @@ export default function DocumentDetailScreen() {
         clear,
     } = useDocumentDetailStore();
 
-    // 🎯 Estado do modal de informações adicionais
+    // 🏪 Store de aprovações (para batchProcess)
+    const { batchProcess } = useApprovalsStore();
+
+    // 🎯 Estados dos modais
     const [additionalInfoModal, setAdditionalInfoModal] = useState({
         visible: false,
         recordNumber: '',
@@ -66,12 +71,18 @@ export default function DocumentDetailScreen() {
         itemDescription: '',
     });
 
-    // 🎯 Estado do modal de histórico
     const [historyModal, setHistoryModal] = useState({
         visible: false,
         productCode: '',
         itemDescription: '',
     });
+
+    const [approvalModal, setApprovalModal] = useState({
+        visible: false,
+    });
+
+    // 🎯 Estado de processamento
+    const [processing, setProcessing] = useState(false);
 
     console.log('📄 [DocumentDetail] Params recebidos:', {
         scrId,
@@ -341,13 +352,69 @@ export default function DocumentDetailScreen() {
     };
 
     const handleApprove = () => {
-        console.log('✅ Aprovar documento:', scrId);
-        toast.success('Função de aprovar em desenvolvimento');
+        console.log('✅ Abrir modal de aprovação');
+        if (documentStatus !== '02') {
+            toast.error('Apenas documentos pendentes podem ser aprovados');
+            return;
+        }
+        setApprovalModal({ visible: true });
     };
 
     const handleReject = () => {
-        console.log('❌ Reprovar documento:', scrId);
-        toast.success('Função de reprovar em desenvolvimento');
+        console.log('❌ Abrir modal de reprovação');
+        if (documentStatus !== '02') {
+            toast.error('Apenas documentos pendentes podem ser reprovados');
+            return;
+        }
+        setApprovalModal({ visible: true });
+    };
+
+    // Handler do modal de aprovação
+    const handleApprovalConfirm = async ({ action, justification }: any) => {
+        try {
+            setProcessing(true);
+
+            console.log('📋 Processando aprovação:', { action, justification });
+
+            // Monta o documento no formato esperado pelo batchProcess
+            const documentToProcess = {
+                scrId: parseInt(scrId),
+                documentType,
+                documentNumber,
+                documentStatus,
+                documentBranch,
+                documentTotal: parseFloat(documentTotal) || 0,
+                documentGroupAprov,
+                documentItemGroup: '', // não temos esse campo aqui
+            };
+
+            console.log('📄 Documento a processar:', documentToProcess);
+
+            // Chama batchProcess com 1 documento
+            await batchProcess({
+                action,
+                justification,
+                documents: [documentToProcess as any],
+            });
+
+            toast.success(
+                action === 'approve'
+                    ? 'Documento aprovado com sucesso!'
+                    : 'Documento reprovado com sucesso!'
+            );
+
+            setApprovalModal({ visible: false });
+
+            // Volta para lista após 1 segundo
+            setTimeout(() => {
+                router.back();
+            }, 1000);
+        } catch (error: any) {
+            console.error('❌ Erro ao processar:', error);
+            toast.error(`Erro: ${error?.message || 'Não foi possível processar'}`);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const handleOpenAttachments = () => {
@@ -602,6 +669,28 @@ export default function DocumentDetailScreen() {
                 productCode={historyModal.productCode}
                 itemDescription={historyModal.itemDescription}
             />
+
+            {/* MODAL DE APROVAÇÃO */}
+            <ApprovalModal
+                visible={approvalModal.visible}
+                onClose={() => setApprovalModal({ visible: false })}
+                documents={[
+                    {
+                        scrId: parseInt(scrId),
+                        documentType,
+                        documentNumber,
+                        documentStatus,
+                        documentBranch,
+                        documentTotal: parseFloat(documentTotal) || 0,
+                        documentGroupAprov,
+                        documentItemGroup: '',
+                    } as any,
+                ]}
+                onConfirm={handleApprovalConfirm}
+            />
+
+            {/* LOADING OVERLAY */}
+            <LoadingOverlay visible={processing} text="Processando..." isbg />
         </ThemedSafeArea>
     );
 }
