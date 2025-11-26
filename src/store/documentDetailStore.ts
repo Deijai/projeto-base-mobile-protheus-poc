@@ -195,7 +195,7 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
     refresh: async () => {
         const { currentDocument } = get();
 
-        if (!currentDocument.scrId || !currentDocument.scrId) {
+        if (!currentDocument.scrId || !currentDocument.documentType) {
             console.error('❌ [DocumentDetailStore] Documento não definido');
             return;
         }
@@ -204,7 +204,7 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
 
         set({ refreshing: true });
         await get().fetchItems(
-            currentDocument.scrId.toString(),
+            currentDocument.documentType,
             currentDocument.scrId!,
             true
         );
