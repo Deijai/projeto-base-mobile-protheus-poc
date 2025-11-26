@@ -1,4 +1,15 @@
+// app/settings.tsx (ou equivalente)
+import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
 import { ThemedView } from '@/src/components/layout/ThemedView';
+import { useAppContext } from '@/src/hooks/useAppContext';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useToast } from '@/src/hooks/useToast';
+
+import { useAuthStore } from '@/src/store/authStore';
+import { useBranchStore } from '@/src/store/branchStore';
+import { useConnectionStore } from '@/src/store/connectionStore';
+import { useModuleStore } from '@/src/store/moduleStore';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -10,17 +21,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ThemedSafeArea } from '../../src/components/layout/ThemedSafeArea';
-import { useAppContext } from '../../src/hooks/useAppContext';
-import { useTheme } from '../../src/hooks/useTheme';
-import { useToast } from '../../src/hooks/useToast';
-import { useAuthStore } from '../../src/store/authStore';
-import { useBranchStore } from '../../src/store/branchStore';
-import { useConnectionStore } from '../../src/store/connectionStore';
-import { useModuleStore } from '../../src/store/moduleStore';
 
 export default function SettingsScreen() {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, themeMode, setTheme } = useTheme();
     const { user, selectedBranch, selectedModule } = useAppContext();
     const router = useRouter();
     const toast = useToast();
@@ -30,7 +33,7 @@ export default function SettingsScreen() {
         biometricType,
         enableBiometric,
         disableBiometric,
-        logout
+        logout,
     } = useAuthStore();
     const { clear: clearBranch } = useBranchStore();
     const { clear: clearModule } = useModuleStore();
@@ -39,21 +42,21 @@ export default function SettingsScreen() {
     const handleChangeBranch = () => {
         router.push({
             pathname: '/branches',
-            params: { fromSettings: 'true' }
+            params: { fromSettings: 'true' },
         });
     };
 
     const handleChangeModule = () => {
         router.push({
             pathname: '/modules',
-            params: { fromSettings: 'true' }
+            params: { fromSettings: 'true' },
         });
     };
 
     const handleEditRest = () => {
         router.push({
             pathname: '/config-rest',
-            params: { fromSettings: 'true' }
+            params: { fromSettings: 'true' },
         });
     };
 
@@ -95,15 +98,33 @@ export default function SettingsScreen() {
         ]);
     };
 
+    const isLight = themeMode === 'light';
+    const isDark = themeMode === 'dark';
+    const isSunset = themeMode === 'sunset';
+
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
             <ThemedView>
                 {/* HEADER / PERFIL */}
-                <View style={[styles.profileCard, { backgroundColor: theme.surface, shadowColor: theme.text }]}>
+                <View
+                    style={[
+                        styles.profileCard,
+                        { backgroundColor: theme.surface, shadowColor: theme.text },
+                    ]}
+                >
                     <View style={styles.profileLeft}>
-                        <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+                        <View
+                            style={[
+                                styles.avatar,
+                                {
+                                    backgroundColor: theme.primary,
+                                },
+                            ]}
+                        >
                             <Text style={styles.avatarLetter}>
-                                {(user?.name || user?.username || 'U').slice(0, 1).toUpperCase()}
+                                {(user?.name || user?.username || 'U')
+                                    .slice(0, 1)
+                                    .toUpperCase()}
                             </Text>
                         </View>
 
@@ -123,12 +144,13 @@ export default function SettingsScreen() {
                 </View>
 
                 <View style={styles.headerTextContainer}>
-                    <Text style={[styles.title, { color: theme.text }]}>Configurações</Text>
+                    <Text style={[styles.title, { color: theme.text }]}>
+                        Configurações
+                    </Text>
                     <Text style={[styles.subtitle, { color: theme.muted }]}>
                         Gerencie sua conta e o ambiente Protheus
                     </Text>
                 </View>
-
 
                 {/* AMBIENTE ATUAL */}
                 <Text style={[styles.sectionTitle, { color: theme.muted }]}>
@@ -146,14 +168,25 @@ export default function SettingsScreen() {
                             <Text style={[styles.label, { color: theme.muted }]}>
                                 Servidor REST
                             </Text>
-                            <Text style={[styles.value, { color: theme.text }]} numberOfLines={1}>
+                            <Text
+                                style={[styles.value, { color: theme.text }]}
+                                numberOfLines={1}
+                            >
                                 {config
-                                    ? `${config.protocol.toLowerCase()}://${config.address}${config.port ? ':' + config.port : ''}/${config.endpoint}`
+                                    ? `${config.protocol.toLowerCase()}://${config.address}${config.port ? ':' + config.port : ''
+                                    }/${config.endpoint}`
                                     : 'Não configurado'}
                             </Text>
                         </View>
-                        <TouchableOpacity onPress={handleEditRest} style={styles.actionBtn}>
-                            <Ionicons name="pencil-outline" size={16} color={theme.primary} />
+                        <TouchableOpacity
+                            onPress={handleEditRest}
+                            style={styles.actionBtn}
+                        >
+                            <Ionicons
+                                name="pencil-outline"
+                                size={16}
+                                color={theme.primary}
+                            />
                         </TouchableOpacity>
                     </View>
 
@@ -161,51 +194,191 @@ export default function SettingsScreen() {
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.label, { color: theme.muted }]}>Filial</Text>
-                            <Text style={[styles.value, { color: theme.text }]} numberOfLines={1}>
+                            <Text
+                                style={[styles.value, { color: theme.text }]}
+                                numberOfLines={1}
+                            >
                                 {selectedBranch?.Description || 'Nenhuma selecionada'}
                             </Text>
                         </View>
-                        <TouchableOpacity onPress={handleChangeBranch} style={styles.actionBtn}>
-                            <Ionicons name="swap-horizontal-outline" size={16} color={theme.primary} />
+                        <TouchableOpacity
+                            onPress={handleChangeBranch}
+                            style={styles.actionBtn}
+                        >
+                            <Ionicons
+                                name="swap-horizontal-outline"
+                                size={16}
+                                color={theme.primary}
+                            />
                         </TouchableOpacity>
                     </View>
 
                     {/* MÓDULO */}
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.label, { color: theme.muted }]}>Módulo</Text>
-                            <Text style={[styles.value, { color: theme.text }]} numberOfLines={1}>
+                            <Text style={[styles.label, { color: theme.muted }]}>
+                                Módulo
+                            </Text>
+                            <Text
+                                style={[styles.value, { color: theme.text }]}
+                                numberOfLines={1}
+                            >
                                 {selectedModule?.name || 'Nenhum selecionado'}
                             </Text>
                         </View>
-                        <TouchableOpacity onPress={handleChangeModule} style={styles.actionBtn}>
+                        <TouchableOpacity
+                            onPress={handleChangeModule}
+                            style={styles.actionBtn}
+                        >
                             <Ionicons name="grid-outline" size={16} color={theme.primary} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* PREFERÊNCIAS */}
-                <Text style={[styles.sectionTitle, { color: theme.muted }]}>Preferências</Text>
+                <Text style={[styles.sectionTitle, { color: theme.muted }]}>
+                    Preferências
+                </Text>
                 <View
                     style={[
                         styles.card,
                         { backgroundColor: theme.surface, borderColor: theme.border },
                     ]}
                 >
-                    <TouchableOpacity style={styles.listItem} onPress={toggleTheme}>
-                        <Ionicons name="moon-outline" size={20} color={theme.text} />
+                    <Text
+                        style={[
+                            styles.label,
+                            { color: theme.muted, marginBottom: 8, fontSize: 12 },
+                        ]}
+                    >
+                        Tema do aplicativo
+                    </Text>
+
+                    {/* Tema Claro */}
+                    <TouchableOpacity
+                        style={[
+                            styles.listItem,
+                            {
+                                paddingVertical: 8,
+                                borderRadius: 12,
+                                marginBottom: 6,
+                                backgroundColor: isLight
+                                    ? theme.primary + '10'
+                                    : 'transparent',
+                            },
+                        ]}
+                        onPress={() => setTheme('light')}
+                    >
+                        <Ionicons
+                            name="sunny-outline"
+                            size={20}
+                            color={isLight ? theme.primary : theme.text}
+                        />
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.itemTitle, { color: theme.text }]}>
-                                Alternar tema
+                            <Text
+                                style={[
+                                    styles.itemTitle,
+                                    { color: isLight ? theme.primary : theme.text },
+                                ]}
+                            >
+                                Claro
                             </Text>
                             <Text style={{ color: theme.muted, fontSize: 12 }}>
-                                Troque entre tema claro e escuro
+                                Fundo claro, ideal para ambientes bem iluminados
                             </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color={theme.muted} />
+                        {isLight && (
+                            <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.primary}
+                            />
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Tema Escuro */}
+                    <TouchableOpacity
+                        style={[
+                            styles.listItem,
+                            {
+                                paddingVertical: 8,
+                                borderRadius: 12,
+                                marginBottom: 6,
+                                backgroundColor: isDark ? theme.primary + '10' : 'transparent',
+                            },
+                        ]}
+                        onPress={() => setTheme('dark')}
+                    >
+                        <Ionicons
+                            name="moon-outline"
+                            size={20}
+                            color={isDark ? theme.primary : theme.text}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text
+                                style={[
+                                    styles.itemTitle,
+                                    { color: isDark ? theme.primary : theme.text },
+                                ]}
+                            >
+                                Escuro
+                            </Text>
+                            <Text style={{ color: theme.muted, fontSize: 12 }}>
+                                Fundo escuro, mais confortável à noite
+                            </Text>
+                        </View>
+                        {isDark && (
+                            <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.primary}
+                            />
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Tema Sunset (Protheus) */}
+                    <TouchableOpacity
+                        style={[
+                            styles.listItem,
+                            {
+                                paddingVertical: 8,
+                                borderRadius: 12,
+                                backgroundColor: isSunset
+                                    ? theme.primary + '10'
+                                    : 'transparent',
+                            },
+                        ]}
+                        onPress={() => setTheme('sunset')}
+                    >
+                        <Ionicons
+                            name="color-palette-outline"
+                            size={20}
+                            color={isSunset ? theme.primary : theme.text}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text
+                                style={[
+                                    styles.itemTitle,
+                                    { color: isSunset ? theme.primary : theme.text },
+                                ]}
+                            >
+                                Sunset (Protheus)
+                            </Text>
+                            <Text style={{ color: theme.muted, fontSize: 12 }}>
+                                Destaques em vermelho #87090D, inspirado no Protheus
+                            </Text>
+                        </View>
+                        {isSunset && (
+                            <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.primary}
+                            />
+                        )}
                     </TouchableOpacity>
                 </View>
 
+                {/* SEGURANÇA */}
                 <Text style={[styles.sectionTitle, { color: theme.muted }]}>
                     Segurança
                 </Text>
@@ -216,14 +389,19 @@ export default function SettingsScreen() {
                     ]}
                 >
                     <View style={styles.listItem}>
-                        <Ionicons name="finger-print-outline" size={20} color={theme.text} />
+                        <Ionicons
+                            name="finger-print-outline"
+                            size={20}
+                            color={theme.text}
+                        />
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.itemTitle, { color: theme.text }]}>
                                 Login com biometria
                             </Text>
                             <Text style={{ color: theme.muted, fontSize: 12 }}>
                                 {biometricEnabled
-                                    ? `Usando ${biometricType === 'face' ? 'Face ID' : 'biometria'}`
+                                    ? `Usando ${biometricType === 'face' ? 'Face ID' : 'biometria'
+                                    }`
                                     : 'Ative para entrar sem digitar senha'}
                             </Text>
                         </View>
@@ -237,13 +415,19 @@ export default function SettingsScreen() {
                                         disableBiometric();
                                         switch (result.reason) {
                                             case 'no-refresh':
-                                                toast.error('Faça login novamente para ativar a biometria.');
+                                                toast.error(
+                                                    'Faça login novamente para ativar a biometria.'
+                                                );
                                                 break;
                                             case 'no-hardware':
-                                                toast.error('Este dispositivo não liberou biometria para o app.');
+                                                toast.error(
+                                                    'Este dispositivo não liberou biometria para o app.'
+                                                );
                                                 break;
                                             case 'not-enrolled':
-                                                toast.error('Cadastre Face ID / Touch ID nas configurações do iPhone.');
+                                                toast.error(
+                                                    'Cadastre Face ID / Touch ID nas configurações do iPhone.'
+                                                );
                                                 break;
                                             default:
                                                 toast.error('Não foi possível ativar a biometria.');
@@ -261,7 +445,6 @@ export default function SettingsScreen() {
                         />
                     </View>
                 </View>
-
 
                 {/* DADOS DO APP */}
                 <Text style={[styles.sectionTitle, { color: theme.muted }]}>
@@ -382,7 +565,6 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 999,
-        backgroundColor: '#f87171',
         justifyContent: 'center',
         alignItems: 'center',
     },

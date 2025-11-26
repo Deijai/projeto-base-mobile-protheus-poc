@@ -1,8 +1,9 @@
+// store/useThemeStore.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'sunset';
 
 type ThemeState = {
     theme: ThemeMode;
@@ -16,7 +17,15 @@ export const useThemeStore = create<ThemeState>()(
             theme: 'light',
             toggleTheme: () => {
                 const current = get().theme;
-                set({ theme: current === 'light' ? 'dark' : 'light' });
+                // ciclo: light -> dark -> sunset -> light
+                const next =
+                    current === 'light'
+                        ? 'dark'
+                        : current === 'dark'
+                            ? 'sunset'
+                            : 'light';
+
+                set({ theme: next });
             },
             setTheme: (mode) => set({ theme: mode }),
         }),

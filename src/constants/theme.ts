@@ -1,3 +1,8 @@
+// theme.ts (ou onde estão seus temas)
+
+import { ThemeMode } from "../store/themeStore";
+
+
 export const lightTheme = {
     name: 'light',
     background: '#FFFFFF',
@@ -26,6 +31,30 @@ export const darkTheme = {
     warning: '#F59E0B',
 };
 
+export const sunsetTheme = {
+    name: 'sunset',
+    background: '#F9FAFB',
+    surface: '#FFFFFF',
+    text: '#111827',
+    muted: '#6B7280',
+    // 🌅 Cor base do Protheus Sunset
+    primary: '#87090D',
+    border: '#FECACA',
+    overlay: 'rgba(255, 255, 255, 0.97)',
+    success: '#16A34A',
+    error: '#DC2626',
+    warning: '#F97316',
+};
+
 // helper
-export const getTheme = (mode: 'light' | 'dark') =>
-    mode === 'light' ? lightTheme : darkTheme;
+export const getTheme = (mode: ThemeMode) => {
+    switch (mode) {
+        case 'dark':
+            return darkTheme;
+        case 'sunset':
+            return sunsetTheme;
+        case 'light':
+        default:
+            return lightTheme;
+    }
+};
