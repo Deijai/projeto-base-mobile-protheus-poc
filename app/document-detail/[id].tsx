@@ -1,6 +1,7 @@
-// app/document-detail/[id].tsx - USANDO STORE
+// app/document-detail/[id].tsx - VERSÃO ATUALIZADA COM ANEXOS, RATEIO E HISTÓRICO
 import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
 import { ApprovalModal } from '@/src/components/ui/ApprovalModal';
+import { AttachmentsModal } from '@/src/components/ui/AttachmentsModal';
 import { ItemAdditionalInfoModal } from '@/src/components/ui/ItemAdditionalInfoModal';
 import { ItemHistoryModal } from '@/src/components/ui/ItemHistoryModal';
 import { LoadingOverlay } from '@/src/components/ui/LoadingOverlay';
@@ -74,6 +75,11 @@ export default function DocumentDetailScreen() {
     });
 
     const [approvalModal, setApprovalModal] = useState({
+        visible: false,
+    });
+
+    // 📎 NOVO: Estado do modal de anexos
+    const [attachmentsModal, setAttachmentsModal] = useState({
         visible: false,
     });
 
@@ -357,7 +363,10 @@ export default function DocumentDetailScreen() {
         );
     };
 
-    // HANDLERS
+    // ==========================================
+    // 🔥 HANDLERS ATUALIZADOS
+    // ==========================================
+
     const handleViewMore = (item: any) => {
         const isPurchaseOrder = 'purchaseOrderItem' in item;
         const itemNumber = isPurchaseOrder ? item.purchaseOrderItem : item.requestItem;
@@ -387,6 +396,45 @@ export default function DocumentDetailScreen() {
             visible: true,
             productCode,
             itemDescription,
+        });
+    };
+
+    // 📎 ANEXOS - Abre modal
+    const handleOpenAttachments = () => {
+        console.log('📎 Abrir modal de anexos:', scrId);
+        setAttachmentsModal({ visible: true });
+    };
+
+    // 📜 HISTÓRICO - Navega para página
+    const handleOpenHistory = () => {
+        console.log('📜 Navegar para histórico:', scrId);
+        router.push({
+            pathname: '/approval-history',
+            params: {
+                scrId,
+                documentNumber,
+                documentType,
+            },
+        });
+    };
+
+    // 💰 RATEIO - Navega para página (com validação)
+    const handleOpenApportionment = () => {
+        console.log('📊 Navegar para rateio:', documentNumber);
+
+        // Rateio só existe para SC e PC/IP/AE
+        const type = documentType.toUpperCase();
+        if (!['SC', 'PC', 'IP', 'AE'].includes(type)) {
+            toast.info('Rateio não disponível para este tipo de documento');
+            return;
+        }
+
+        router.push({
+            pathname: '/apportionment',
+            params: {
+                documentNumber,
+                documentType,
+            },
         });
     };
 
@@ -443,18 +491,6 @@ export default function DocumentDetailScreen() {
         } finally {
             setProcessing(false);
         }
-    };
-
-    const handleOpenAttachments = () => {
-        toast.info('Tela de anexos em desenvolvimento');
-    };
-
-    const handleOpenHistory = () => {
-        toast.info('Tela de histórico em desenvolvimento');
-    };
-
-    const handleOpenApportionment = () => {
-        toast.info('Tela de rateio em desenvolvimento');
     };
 
     const formatDate = (dateStr: string) => {
@@ -935,7 +971,11 @@ export default function DocumentDetailScreen() {
                 </View>
             )}
 
-            {/* MODAIS */}
+            {/* ==========================================
+                🔥 MODAIS - AGORA COM ANEXOS
+                ========================================== */}
+
+            {/* Modal de informações adicionais do item */}
             <ItemAdditionalInfoModal
                 visible={additionalInfoModal.visible}
                 onClose={() =>
@@ -950,6 +990,7 @@ export default function DocumentDetailScreen() {
                 itemDescription={additionalInfoModal.itemDescription}
             />
 
+            {/* Modal de histórico de compras do item */}
             <ItemHistoryModal
                 visible={historyModal.visible}
                 onClose={() =>
@@ -959,6 +1000,7 @@ export default function DocumentDetailScreen() {
                 itemDescription={historyModal.itemDescription}
             />
 
+            {/* Modal de aprovação/reprovação */}
             <ApprovalModal
                 visible={approvalModal.visible}
                 onClose={() => setApprovalModal({ visible: false })}
@@ -975,6 +1017,14 @@ export default function DocumentDetailScreen() {
                     } as any,
                 ]}
                 onConfirm={handleApprovalConfirm}
+            />
+
+            {/* 📎 NOVO: Modal de anexos */}
+            <AttachmentsModal
+                visible={attachmentsModal.visible}
+                onClose={() => setAttachmentsModal({ visible: false })}
+                scrId={parseInt(scrId)}
+                documentNumber={documentNumber}
             />
 
             <LoadingOverlay visible={processing} text="Processando..." isbg />

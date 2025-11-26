@@ -1,4 +1,4 @@
-// src/api/documentService.ts
+// src/api/documentService.ts - VERSÃO CORRIGIDA DOS ANEXOS
 import { api } from './axiosInstance';
 
 // 📝 Interfaces para Purchase Request (SC)
@@ -75,17 +75,6 @@ export interface ApprovalAction {
 }
 
 export const documentService = {
-    // ❌ ENDPOINT NÃO EXISTE NO PROTHEUS
-    // A API do Protheus não tem endpoint para buscar documento por scrId
-    // Use os dados que vêm nos params da navegação (documentNumber, documentTotal, etc)
-    /*
-    async getDocument(scrId: number) {
-        // ❌ Este endpoint não existe:
-        // GET /backofficeapprovals/api/com/approvals/v1/document/${scrId}
-        throw new Error('Endpoint não implementado no Protheus');
-    },
-    */
-
     /**
      * Busca itens de um documento
      * @param documentType - Tipo do endpoint: 'purchaserequest', 'purchaseorder', etc
@@ -101,7 +90,6 @@ export const documentService = {
         pageSize = 10,
         itemGroup = ''
     ): Promise<any> {
-        // ✅ CORRETO: usa scrId ao invés de documentNumber
         const url = `backofficeapprovals/api/com/approvals/v1/${documentType}/${scrId}/items`;
 
         console.log('='.repeat(80));
@@ -109,17 +97,6 @@ export const documentService = {
         console.log('='.repeat(80));
         console.log('📍 URL:', url);
         console.log('📍 Params:', { page, pageSize, itemGroup });
-        console.log('📍 documentType:', documentType);
-        console.log('📍 scrId:', scrId);
-
-        // Pega o baseURL do axios
-        const baseURL = api.defaults.baseURL;
-        console.log('📍 Base URL:', baseURL);
-        console.log('📍 URL Completa:', `${baseURL}/${url}`);
-
-        // Pega os headers que serão enviados
-        const headers = api.defaults.headers;
-        console.log('📍 Headers:', JSON.stringify(headers, null, 2));
         console.log('='.repeat(80));
 
         try {
@@ -131,27 +108,11 @@ export const documentService = {
                 }
             });
 
-            console.log('='.repeat(80));
             console.log('✅ [documentService] SUCESSO!');
-            console.log('='.repeat(80));
-            console.log('📦 Response Status:', res.status);
-            console.log('📦 Response Data:', JSON.stringify(res.data, null, 2));
-            console.log('='.repeat(80));
-
             return res.data;
         } catch (error: any) {
-            console.log('='.repeat(80));
             console.error('❌ [documentService] ERRO AO BUSCAR ITENS');
-            console.log('='.repeat(80));
-            console.error('❌ URL:', url);
-            console.error('❌ Params:', { page, pageSize, itemGroup });
             console.error('❌ Status:', error?.response?.status);
-            console.error('❌ Status Text:', error?.response?.statusText);
-            console.error('❌ Response Data:', JSON.stringify(error?.response?.data, null, 2));
-            console.error('❌ Response Headers:', JSON.stringify(error?.response?.headers, null, 2));
-            console.error('❌ Error Message:', error?.message);
-            console.log('='.repeat(80));
-
             throw error;
         }
     },
@@ -164,15 +125,7 @@ export const documentService = {
         itemNumber: string,
         itemRecno: number
     ) {
-        console.log('='.repeat(80));
-        console.log('ℹ️ [documentService] BUSCANDO INFO ADICIONAL');
-        console.log('='.repeat(80));
-        console.log('📍 recordNumber:', recordNumber);
-        console.log('📍 itemNumber:', itemNumber);
-        console.log('📍 itemRecno:', itemRecno);
-        console.log('📍 URL:', 'backofficeapprovals/api/com/approvals/v1/itemAdditionalInformation');
-        console.log('📍 Params:', { recordNumber, itemNumber, itemRecno });
-        console.log('='.repeat(80));
+        console.log('ℹ️ [documentService] BUSCANDO INFO ADICIONAL:', { recordNumber, itemNumber, itemRecno });
 
         try {
             const res = await api.get(
@@ -186,28 +139,11 @@ export const documentService = {
                 }
             );
 
-            console.log('📦 Response ==:', res);
-            console.log('='.repeat(80));
             console.log('✅ [documentService] INFO ADICIONAL SUCESSO');
-            console.log('='.repeat(80));
-            console.log('📦 Response Status:', res.status);
-            console.log('📦 Response Data:', JSON.stringify(res.data, null, 2));
-            console.log('='.repeat(80));
-
             return res.data;
         } catch (error: any) {
-            console.log('='.repeat(80));
             console.error('❌ [documentService] ERRO AO BUSCAR INFO ADICIONAL');
-            console.log('='.repeat(80));
-            console.error('❌ recordNumber:', recordNumber);
-            console.error('❌ itemNumber:', itemNumber);
-            console.error('❌ itemRecno:', itemRecno);
             console.error('❌ Status:', error?.response?.status);
-            console.error('❌ Status Text:', error?.response?.statusText);
-            console.error('❌ Response Data:', JSON.stringify(error?.response?.data, null, 2));
-            console.error('❌ Error Message:', error?.message);
-            console.log('='.repeat(80));
-
             throw error;
         }
     },
@@ -224,7 +160,7 @@ export const documentService = {
                 { params: { productCode, page, pageSize } }
             );
 
-            console.log('✅ [documentService] Histórico carregado:', res.data);
+            console.log('✅ [documentService] Histórico carregado');
             return res.data;
         } catch (error: any) {
             console.error('❌ [documentService] Erro ao buscar histórico:', error);
@@ -252,21 +188,95 @@ export const documentService = {
     },
 
     /**
-     * Busca anexos do documento
+     * 📎 LISTA os anexos do documento
+     * Endpoint: /backofficeapprovals/api/com/approvals/v1/listAttachments/{scrId}
+     * Usa: scrId (RECNO do documento) - ex: 769
      */
     async getAttachments(scrId: number, page = 1, pageSize = 10) {
-        console.log('📎 [documentService] Buscando anexos:', scrId);
+        // ✅ ENDPOINT CORRETO: /listAttachments/{scrId}
+        const url = `/backofficeapprovals/api/com/approvals/v1/listAttachments/${scrId}`;
+
+        console.log('='.repeat(80));
+        console.log('📎 [documentService] LISTANDO ANEXOS');
+        console.log('='.repeat(80));
+        console.log('📍 URL:', url);
+        console.log('📍 scrId:', scrId);
+        console.log('📍 Params:', { page, pageSize });
+        console.log('='.repeat(80));
 
         try {
-            const res = await api.get(
-                `/backofficeapprovals/api/com/approvals/v1/listAttachments/${scrId}`,
-                { params: { page, pageSize } }
-            );
+            const res = await api.get(url, {
+                params: { page, pageSize }
+            });
 
-            console.log('✅ [documentService] Anexos carregados');
+            console.log('='.repeat(80));
+            console.log('✅ [documentService] ANEXOS LISTADOS COM SUCESSO');
+            console.log('='.repeat(80));
+            console.log('📦 Response completo:', JSON.stringify(res.data, null, 2));
+            console.log('📦 Tem items?', !!res.data?.items);
+            console.log('📦 Tem itemsAttachments?', !!res.data?.itemsAttachments);
+            console.log('📦 Quantidade:',
+                res.data?.items?.length ||
+                res.data?.itemsAttachments?.length ||
+                0
+            );
+            console.log('='.repeat(80));
+
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao buscar anexos:', error);
+            console.log('='.repeat(80));
+            console.error('❌ [documentService] ERRO AO LISTAR ANEXOS');
+            console.log('='.repeat(80));
+            console.error('❌ URL:', url);
+            console.error('❌ Status:', error?.response?.status);
+            console.error('❌ Data:', error?.response?.data);
+            console.log('='.repeat(80));
+            throw error;
+        }
+    },
+
+    /**
+     * 💾 BAIXA o arquivo do anexo (retorna base64)
+     * Endpoint: /backofficeapprovals/api/com/approvals/v1/attachments/{objectCode}
+     * Usa: objectCode (código do anexo) - ex: "0000000173"
+     */
+    async getAttachmentFile(objectCode: string | number) {
+        // ✅ ENDPOINT CORRETO: /attachments/{objectCode}
+        // Adiciona barra no final conforme log: .../0000000173/
+        const url = `/backofficeapprovals/api/com/approvals/v1/attachments/${objectCode}/`;
+
+        console.log('='.repeat(80));
+        console.log('💾 [documentService] BAIXANDO ARQUIVO DO ANEXO');
+        console.log('='.repeat(80));
+        console.log('📍 URL:', url);
+        console.log('📍 objectCode:', objectCode);
+        console.log('='.repeat(80));
+
+        try {
+            const res = await api.get(url, {
+                params: {
+                    page: 1,
+                    pageSize: 10,
+                }
+            });
+
+            console.log('='.repeat(80));
+            console.log('✅ [documentService] ARQUIVO BAIXADO COM SUCESSO');
+            console.log('='.repeat(80));
+            console.log('📦 Tem base64?', !!res.data?.base64);
+            console.log('📦 Tamanho:', res.data?.base64?.length || 0, 'chars');
+            console.log('='.repeat(80));
+
+            return res.data;
+        } catch (error: any) {
+            console.log('='.repeat(80));
+            console.error('❌ [documentService] ERRO AO BAIXAR ARQUIVO');
+            console.log('='.repeat(80));
+            console.error('❌ URL:', url);
+            console.error('❌ objectCode:', objectCode);
+            console.error('❌ Status:', error?.response?.status);
+            console.error('❌ Data:', error?.response?.data);
+            console.log('='.repeat(80));
             throw error;
         }
     },

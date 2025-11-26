@@ -67,7 +67,7 @@ export default function RootLayout() {
     if (!isNavigationReady || !hydrated) return;
 
     const rootSegment = segments[0];
-    const utilityRoutes = ['config-rest', 'branches', 'modules', 'document-detail'];
+    const utilityRoutes = ['config-rest', 'branches', 'modules', 'document-detail', 'approval-history', 'apportionment'];
 
     // 1) Sem REST válido
     if (!restValid || !config) {
