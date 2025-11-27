@@ -44,16 +44,8 @@ export default function RootLayout() {
       if (isAuthenticated) return;
       if (!biometricEnabled) return;
 
-      console.log('[_layout] Tentando auto-login biométrico...');
       setBiometricAttempted(true);
-
-      const ok = await tryAutoBiometricLogin();
-
-      if (ok) {
-        console.log('[_layout] ✅ Auto-login bem-sucedido');
-      } else {
-        console.log('[_layout] ❌ Auto-login falhou ou foi cancelado');
-      }
+      await tryAutoBiometricLogin();
     };
 
     initBiometric();

@@ -1,4 +1,5 @@
 // app/(tabs)/home.tsx
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedSafeArea } from '../../src/components/layout/ThemedSafeArea';
@@ -11,14 +12,15 @@ export default function HomeScreen() {
 
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
-            <View style={styles.container}>
-                <Text style={[styles.title, { color: theme.text }]}>
-                    Olá, {user?.name || user?.username || 'usuário'}
-                </Text>
-                <Text style={[styles.subtitle, { color: theme.muted }]}>
-                    Bem-vindo ao aplicativo Protheus Mobile.
-                </Text>
+            <ScreenHeader
+                title="Inicio"
+                subtitle={`Bem-vindo, ${user?.name || user?.username || 'usuário'}`}
+                showLogo
+                logoTintColor={theme.primary}
+                logoPosition="right" // agora a logo vai pra direita
+            />
 
+            <View style={styles.container}>
                 <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <Text style={[styles.label, { color: theme.muted }]}>Filial atual</Text>
                     <Text style={[styles.value, { color: theme.text }]}>

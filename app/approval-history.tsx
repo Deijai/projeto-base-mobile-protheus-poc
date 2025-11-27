@@ -56,12 +56,7 @@ export default function ApprovalHistoryScreen() {
     const loadHistory = async () => {
         try {
             setLoading(true);
-
-            console.log('📜 Carregando histórico:', scrId);
-
             const response = await documentService.getApprovalHistory(scrId);
-
-            console.log('✅ Histórico carregado:', response);
 
             if (response?.approvalHistory) {
                 setHistory(response.approvalHistory);
@@ -70,7 +65,6 @@ export default function ApprovalHistoryScreen() {
                 setHistory([]);
             }
         } catch (error: any) {
-            console.error('❌ Erro ao carregar histórico:', error);
             toast.error(error?.message || 'Erro ao carregar histórico');
             setHistory([]);
         } finally {

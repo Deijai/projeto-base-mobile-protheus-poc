@@ -1,9 +1,10 @@
-// app/(tabs)/documents.tsx - COM NAVEGAÇÃO CORRIGIDA
+// app/(tabs)/documents.tsx - COM CT / MD / IM
 import { ThemedSafeArea } from '@/src/components/layout/ThemedSafeArea';
 import { ApprovalModal } from '@/src/components/ui/ApprovalModal';
 import { BranchFilterModal } from '@/src/components/ui/BranchFilterModal';
 import { FilterModal } from '@/src/components/ui/FilterModal';
 import { LoadingOverlay } from '@/src/components/ui/LoadingOverlay';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Segment } from '@/src/components/ui/Segment';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useToast } from '@/src/hooks/useToast';
@@ -16,15 +17,21 @@ import {
     ActivityIndicator,
     FlatList,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+
+// 👇 tipos de documento usados na UI (inclui CT / MD / IM)
+type UIDocumentType = 'SC' | 'PC' | 'IP' | 'AE' | 'CT' | 'MD' | 'IM' | 'ALL';
 
 export default function DocumentsScreen() {
     const { theme } = useTheme();
-    const router = useRouter(); // 👈 ADICIONA O ROUTER
+    const router = useRouter();
+    const toast = useToast();
+
     const {
         documents,
         loading,
@@ -41,13 +48,11 @@ export default function DocumentsScreen() {
     const [approvalVisible, setApprovalVisible] = useState(false);
 
     const [segment, setSegment] = useState<'02' | '03' | '06'>('02');
-    const [docType, setDocType] = useState<'SC' | 'PC' | 'IP' | 'AE' | 'ALL'>('SC');
+    const [docType, setDocType] = useState<UIDocumentType>('SC');
     const [filteredBranches, setFilteredBranches] = useState<string[]>([]);
 
     const [listLoading, setListLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
-
-    const toast = useToast();
     const [processing, setProcessing] = useState(false);
 
     const pendingSelectedDocs = selectedDocs.filter(
@@ -80,7 +85,7 @@ export default function DocumentsScreen() {
         loadDocs();
     }, []);
 
-    const handleChangeDocType = async (value: 'SC' | 'PC' | 'IP' | 'AE' | 'ALL') => {
+    const handleChangeDocType = async (value: UIDocumentType) => {
         setDocType(value);
         setListLoading(true);
         await fetchDocuments(
@@ -123,15 +128,8 @@ export default function DocumentsScreen() {
         await fetchDocuments(filtersToUse, false);
     };
 
-    // 🎯 NAVEGAÇÃO CORRIGIDA
+    // 🎯 NAVEGAÇÃO PARA DETALHE
     const handleOpenDetail = (item: any) => {
-        console.log('🔍 Abrindo detalhe do documento:', {
-            scrId: item.scrId,
-            documentNumber: item.documentNumber,
-            documentType: item.documentType,
-        });
-
-        // Navega para a tela de detalhe
         router.push({
             pathname: `/document-detail/${item.scrId}` as any,
             params: {
@@ -139,7 +137,7 @@ export default function DocumentsScreen() {
                 documentNumber: item.documentNumber,
                 documentStatus: item.documentStatus,
                 documentBranch: item.documentBranch,
-                documentTotal: item.documentTotal.toString(),
+                documentTotal: item.documentTotal?.toString?.() ?? String(item.documentTotal ?? 0),
                 documentCreated: item.documentCreated,
                 documentGroupAprov: item.documentGroupAprov || '',
                 documentUserName: item.documentUserName || '',
@@ -149,7 +147,6 @@ export default function DocumentsScreen() {
     };
 
     const openApprovalModal = () => {
-        console.log('Abrindo modal de aprovação, docs:', pendingSelectedDocs);
         if (segment !== '02') return;
         if (pendingSelectedDocs.length === 0) return;
 
@@ -185,58 +182,43 @@ export default function DocumentsScreen() {
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
             {/* Header */}
-            <View style={styles.header}>
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.title, { color: theme.text }]}>Documentos</Text>
-                    <Text style={{ color: theme.muted, fontSize: 12 }}>
-                        {docType === 'ALL'
-                            ? 'Todos os tipos'
-                            : `Listando: ${getDocumentTypeLabel(docType)}`}
-                    </Text>
-                </View>
+            <ScreenHeader
+                title="Documentos"
+                subtitle={
+                    docType === 'ALL'
+                        ? 'Todos os tipos'
+                        : `Listando: ${getDocumentTypeLabel(docType)}`
+                }
+                showLogo
+                logoTintColor={theme.primary}
+                //logoBackgroundColor={theme.primary}
 
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity
-                        onPress={() => setFilterVisible(true)}
-                        style={[
-                            styles.iconBtn,
-                            { backgroundColor: theme.surface, borderColor: theme.border },
-                        ]}
-                    >
-                        <Ionicons name="filter-outline" size={20} color={theme.text} />
-                    </TouchableOpacity>
+                logoPosition="left" // ou "right", se você quiser a logo do outro lado
+                // logoSource={require('../../../assets/images/totvs-custom.png')} // se quiser passar outro logo
 
-                    <TouchableOpacity
-                        onPress={() => setBranchFilterVisible(true)}
-                        style={[
-                            styles.iconBtn,
-                            { backgroundColor: theme.surface, borderColor: theme.border },
-                        ]}
-                    >
-                        <Ionicons
-                            name={filteredBranches.length > 0 ? 'business' : 'business-outline'}
-                            size={20}
-                            color={filteredBranches.length > 0 ? theme.primary : theme.text}
-                        />
-                        {filteredBranches.length > 0 ? (
-                            <View style={styles.badge}>
-                                <Text style={{ color: '#fff', fontSize: 10 }}>
-                                    {filteredBranches.length}
-                                </Text>
-                            </View>
-                        ) : null}
-                    </TouchableOpacity>
-                </View>
-            </View>
+                showFilterButton
+                showBranchFilterButton
+                branchCount={filteredBranches.length}
+                onPressFilter={() => setFilterVisible(true)}
+                onPressBranchFilter={() => setBranchFilterVisible(true)}
+            />
 
-            {/* chips de tipo */}
+            {/* chips de tipo (agora com CT, MD, IM) */}
             <View style={{ paddingHorizontal: 16, marginBottom: 6 }}>
-                <View style={styles.docTypeRow}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+                    style={{ marginBottom: 6 }}
+                >
                     {([
                         { label: 'SC', value: 'SC' as const },
                         { label: 'PC', value: 'PC' as const },
                         { label: 'IP', value: 'IP' as const },
                         { label: 'AE', value: 'AE' as const },
+                        { label: 'CT', value: 'CT' as const },
+                        { label: 'MD', value: 'MD' as const },
+                        { label: 'IM', value: 'IM' as const },
                         { label: 'Todos', value: 'ALL' as const },
                     ]).map((opt) => {
                         const active = docType === opt.value;
@@ -263,7 +245,8 @@ export default function DocumentsScreen() {
                             </TouchableOpacity>
                         );
                     })}
-                </View>
+                </ScrollView>
+
             </View>
 
             {/* segment de status */}
@@ -292,7 +275,7 @@ export default function DocumentsScreen() {
             {/* lista */}
             <FlatList
                 data={documents}
-                keyExtractor={(item) => `${item.scrId}`}
+                keyExtractor={(item, index) => `${item.scrId + index + Math.random()}`}
                 contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 10 }}
                 refreshControl={
                     <RefreshControl
@@ -419,7 +402,7 @@ export default function DocumentsScreen() {
                                             ]}
                                         >
                                             <Text style={{ fontSize: 10, color: theme.primary }}>
-                                                Mediões
+                                                Medições
                                             </Text>
                                         </View>
                                     )}
@@ -437,7 +420,7 @@ export default function DocumentsScreen() {
                                     )}
                                 </View>
 
-                                {/* 🎯 BOTÃO DETALHE COM NAVEGAÇÃO */}
+                                {/* 🎯 BOTÃO DETALHE + SELEÇÃO */}
                                 <View
                                     style={{
                                         flexDirection: 'row',
@@ -642,6 +625,7 @@ const styles = StyleSheet.create({
     },
     docTypeRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
     },
     docTypeChip: {

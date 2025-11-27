@@ -401,13 +401,11 @@ export default function DocumentDetailScreen() {
 
     // 📎 ANEXOS - Abre modal
     const handleOpenAttachments = () => {
-        console.log('📎 Abrir modal de anexos:', scrId);
         setAttachmentsModal({ visible: true });
     };
 
     // 📜 HISTÓRICO - Navega para página
     const handleOpenHistory = () => {
-        console.log('📜 Navegar para histórico:', scrId);
         router.push({
             pathname: '/approval-history',
             params: {
@@ -420,8 +418,6 @@ export default function DocumentDetailScreen() {
 
     // 💰 RATEIO - Navega para página (com validação)
     const handleOpenApportionment = () => {
-        console.log('📊 Navegar para rateio:', documentNumber);
-
         // Rateio só existe para SC e PC/IP/AE
         const type = documentType.toUpperCase();
         if (!['SC', 'PC', 'IP', 'AE'].includes(type)) {

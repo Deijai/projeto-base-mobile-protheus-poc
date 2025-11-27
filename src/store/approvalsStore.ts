@@ -146,8 +146,6 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
                     })),
                 };
 
-                console.log('Enviando batchApprove:', type, JSON.stringify(payload, null, 2));
-
                 await approvalsService.batchApprove(type, payload);
             }
 

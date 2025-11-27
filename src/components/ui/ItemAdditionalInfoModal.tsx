@@ -56,42 +56,19 @@ export const ItemAdditionalInfoModal: React.FC<Props> = ({
     const loadAdditionalInfo = async () => {
         try {
             setLoading(true);
-
-            console.log('================================================================================');
-            console.log('📋 [ItemAdditionalInfoModal] Carregando info adicional');
-            console.log('================================================================================');
-            console.log('recordNumber:', recordNumber);
-            console.log('itemNumber:', itemNumber);
-            console.log('itemRecno:', itemRecno);
-            console.log('================================================================================');
-
             const response = await documentService.getItemAdditionalInfo(
                 recordNumber,
                 itemNumber,
                 itemRecno
             );
 
-            console.log('================================================================================');
-            console.log('✅ [ItemAdditionalInfoModal] RESPONSE COMPLETA:');
-            console.log('================================================================================');
-            console.log('Response:', JSON.stringify(response, null, 2));
-            console.log('Tem itemsAdditionalInformation?', !!response?.itemsAdditionalInformation);
-            console.log('É array?', Array.isArray(response?.itemsAdditionalInformation));
-            console.log('Quantidade:', response?.itemsAdditionalInformation?.length || 0);
-            console.log('================================================================================');
-
             if (response?.itemsAdditionalInformation) {
                 const infoArray = response.itemsAdditionalInformation;
-                console.log('✅ Setando items:', infoArray);
                 setItems(infoArray);
             } else {
-                console.warn('⚠️ Sem itemsAdditionalInformation na resposta');
                 setItems([]);
             }
         } catch (error: any) {
-            console.error('❌ [ItemAdditionalInfoModal] Erro:', error);
-            console.error('❌ Status:', error?.response?.status);
-            console.error('❌ Data:', JSON.stringify(error?.response?.data, null, 2));
             toast.error(error?.message || 'Erro ao carregar informações adicionais');
             setItems([]);
         } finally {

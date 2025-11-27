@@ -56,11 +56,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
 
     // 📌 Setar documento atual
     setCurrentDocument: (scrId, documentType, documentNumber) => {
-        console.log('📌 [DocumentDetailStore] Setando documento:', {
-            scrId,
-            documentType,
-            documentNumber,
-        });
         set({
             currentDocument: { scrId, documentType, documentNumber },
         });
@@ -72,18 +67,10 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
 
         // Evita chamadas duplicadas
         if (loading) {
-            console.log('⚠️ [DocumentDetailStore] Já está carregando, ignorando...');
             return;
         }
 
         const nextPage = reset ? 1 : page;
-
-        console.log('📥 [DocumentDetailStore] Buscando itens:', {
-            documentType,
-            scrId, // ✅ MUDADO: agora loga scrId
-            page: nextPage,
-            reset,
-        });
 
         try {
             set({ loading: true, error: null });
@@ -112,10 +99,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
                     throw new Error(`Tipo de documento não suportado: ${documentType}`);
             }
 
-            console.log('🔍 [DocumentDetailStore] Usando endpoint:', apiType);
-            console.log('🔍 [DocumentDetailStore] URL será:', `backofficeapprovals/api/com/approvals/v1/${apiType}/${scrId}/items`);
-            console.log('scrId value:', scrId);
-
             // 📡 Chamada da API (com itemGroup vazio e scrId)
             const response = await documentService.getDocumentItems(
                 apiType,
@@ -124,8 +107,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
                 10,
                 '' // itemGroup vazio
             );
-
-            console.log('✅ [DocumentDetailStore] Resposta da API:', response);
 
             // 🔹 Normaliza a resposta baseado no tipo
             let newItems: DocumentItem[] = [];
@@ -138,8 +119,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
             else if (response.records) {
                 newItems = response.records;
             }
-
-            console.log('📦 [DocumentDetailStore] Itens processados:', newItems.length);
 
             if (reset) {
                 set({
@@ -155,7 +134,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
                 });
             }
         } catch (err: any) {
-            console.error('❌ [DocumentDetailStore] Erro ao buscar itens:', err);
             set({
                 error: err?.message ?? 'Erro ao carregar itens',
             });
@@ -169,19 +147,12 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
         const { hasNext, loading, currentDocument, page } = get();
 
         if (!hasNext || loading) {
-            console.log('⚠️ [DocumentDetailStore] Não pode carregar mais:', {
-                hasNext,
-                loading,
-            });
             return;
         }
 
         if (!currentDocument.documentNumber || !currentDocument.documentType) {
-            console.error('❌ [DocumentDetailStore] Documento não definido');
             return;
         }
-
-        console.log('⬇️ [DocumentDetailStore] Carregando mais itens (página', page + 1, ')');
 
         set({ page: page + 1 });
         await get().fetchItems(
@@ -196,12 +167,8 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
         const { currentDocument } = get();
 
         if (!currentDocument.scrId || !currentDocument.documentType) {
-            console.error('❌ [DocumentDetailStore] Documento não definido');
             return;
         }
-
-        console.log('🔄 [DocumentDetailStore] Refresh - resetando lista');
-
         set({ refreshing: true });
         await get().fetchItems(
             currentDocument.documentType,
@@ -213,7 +180,6 @@ export const useDocumentDetailStore = create<DocumentDetailState>((set, get) => 
 
     // 🧹 Limpar estado
     clear: () => {
-        console.log('🧹 [DocumentDetailStore] Limpando estado');
         set({
             currentDocument: {
                 scrId: null,

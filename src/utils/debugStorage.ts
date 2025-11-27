@@ -8,7 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export async function debugStorage(key?: string) {
     if (key) {
         const value = await AsyncStorage.getItem(key);
-        console.log(`🔎 ${key}:`, JSON.parse(value ?? 'null'));
     } else {
         const keys = await AsyncStorage.getAllKeys();
         const entries = await AsyncStorage.multiGet(keys);
@@ -24,7 +23,6 @@ export async function debugStorage(key?: string) {
 export async function clearStorage() {
     try {
         await AsyncStorage.clear();
-        console.log('🧹 AsyncStorage limpo com sucesso!');
     } catch (error) {
         console.error('❌ Erro ao limpar AsyncStorage:', error);
     }

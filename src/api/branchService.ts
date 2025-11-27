@@ -25,8 +25,6 @@ export interface BranchListResponse {
 const BRANCH_ENDPOINT = '/api/framework/environment/v1/branches';
 
 function normalizeBranch(b: BranchDto): BranchDto {
-    // Protheus adora mandar campo com espaço 😅 vamos dar um trim básico
-    console.log('normalizing branch:', b);
 
     return {
         ...b,

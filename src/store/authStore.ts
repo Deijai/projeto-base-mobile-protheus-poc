@@ -69,7 +69,6 @@ export const useAuthStore = create<AuthState>()(
             error: error?.message || 'Falha no login',
             isAuthenticated: false,
           });
-          console.log('[login] Erro:', error);
           return false;
         } finally {
           set({ isLoading: false });
@@ -80,24 +79,20 @@ export const useAuthStore = create<AuthState>()(
         const { user, biometricEnabled } = get();
 
         if (!biometricEnabled) {
-          console.log('[biometricLogin] Biometria não habilitada');
           return false;
         }
 
         if (!user?.refreshToken) {
-          console.log('[biometricLogin] Sem refresh token');
           return false;
         }
 
         const compatible = await LocalAuthentication.hasHardwareAsync();
         if (!compatible) {
-          console.log('[biometricLogin] Hardware incompatível');
           return false;
         }
 
         const enrolled = await LocalAuthentication.isEnrolledAsync();
         if (!enrolled) {
-          console.log('[biometricLogin] Biometria não cadastrada no dispositivo');
           return false;
         }
 
@@ -108,7 +103,6 @@ export const useAuthStore = create<AuthState>()(
         });
 
         if (!result.success) {
-          console.log('[biometricLogin] Usuário cancelou ou falhou');
           return false;
         }
 
@@ -120,10 +114,8 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: refreshed.refresh_token ?? user.refreshToken,
           };
           set({ user: updated, isAuthenticated: true });
-          console.log('[biometricLogin] ✅ Autenticado com sucesso');
           return true;
         } catch (err) {
-          console.log('[biometricLogin] ❌ Erro ao renovar token:', err);
           return false;
         }
       },
@@ -133,12 +125,10 @@ export const useAuthStore = create<AuthState>()(
         const { biometricEnabled, user, isAuthenticated } = get();
 
         if (isAuthenticated) {
-          console.log('[tryAutoBiometricLogin] Já autenticado');
           return false;
         }
 
         if (!biometricEnabled || !user?.refreshToken) {
-          console.log('[tryAutoBiometricLogin] Biometria não configurada ou sem refresh token');
           return false;
         }
 
@@ -146,7 +136,6 @@ export const useAuthStore = create<AuthState>()(
         const enrolled = await LocalAuthentication.isEnrolledAsync();
 
         if (!compatible || !enrolled) {
-          console.log('[tryAutoBiometricLogin] Hardware não disponível ou biometria não cadastrada');
           return false;
         }
 
@@ -157,7 +146,6 @@ export const useAuthStore = create<AuthState>()(
         });
 
         if (!result.success) {
-          console.log('[tryAutoBiometricLogin] Cancelado ou falhou');
           return false;
         }
 
@@ -170,10 +158,8 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: refreshed.refresh_token ?? user.refreshToken,
           };
           set({ user: updatedUser, isAuthenticated: true });
-          console.log('[tryAutoBiometricLogin] ✅ Auto-login bem-sucedido');
           return true;
         } catch (err: any) {
-          console.log('[tryAutoBiometricLogin] ❌ Token expirado ou inválido:', err?.message);
 
           // ✅ Token expirado: limpa tudo e força novo login
           set({
@@ -190,19 +176,16 @@ export const useAuthStore = create<AuthState>()(
         const { user } = get();
 
         if (!user?.refreshToken) {
-          console.log('[enableBiometric] Sem usuário ou refresh token');
           return { ok: false, reason: 'no-refresh' };
         }
 
         const compatible = await LocalAuthentication.hasHardwareAsync();
         if (!compatible) {
-          console.log('[enableBiometric] Hardware não compatível');
           return { ok: false, reason: 'no-hardware' };
         }
 
         const enrolled = await LocalAuthentication.isEnrolledAsync();
         if (!enrolled) {
-          console.log('[enableBiometric] Biometria não cadastrada no dispositivo');
           return { ok: false, reason: 'not-enrolled' };
         }
 
@@ -218,13 +201,11 @@ export const useAuthStore = create<AuthState>()(
         }
 
         set({ biometricEnabled: true, biometricType: typeLabel });
-        console.log('[enableBiometric] ✅ Biometria habilitada:', typeLabel);
         return { ok: true, reason: 'success' };
       },
 
       disableBiometric() {
         set({ biometricEnabled: false, biometricType: undefined });
-        console.log('[disableBiometric] Biometria desabilitada');
       },
 
       logout() {
@@ -235,14 +216,12 @@ export const useAuthStore = create<AuthState>()(
           biometricType: undefined,
         });
         AsyncStorage.removeItem('auth-storage');
-        console.log('[logout] Sessão encerrada');
       },
     }),
     {
       name: 'auth-storage',
       onRehydrateStorage: () => () => {
         useAuthStore.setState({ hydrated: true });
-        console.log('[authStore] ✅ Hidratado do AsyncStorage');
       },
       storage: {
         getItem: async (name) => {

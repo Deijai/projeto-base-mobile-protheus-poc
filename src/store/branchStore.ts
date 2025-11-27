@@ -1,6 +1,7 @@
+// src/store/branchStore.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { BranchDto, branchService } from '../api/branchService';
 
 type BranchState = {
@@ -10,7 +11,6 @@ type BranchState = {
     error: string | null;
     hasNext: boolean;
     page: number;
-    hydrated: boolean;               // 👈 novo
     fetchBranches: (reset?: boolean) => Promise<void>;
     selectBranch: (branch: BranchDto) => void;
     clear: () => void;
@@ -25,25 +25,43 @@ export const useBranchStore = create<BranchState>()(
             error: null,
             hasNext: false,
             page: 1,
-            hydrated: false,             // 👈 começa false
 
             async fetchBranches(reset = false) {
                 const { loading, hasNext, page, branches } = get();
 
-                // evita requisição duplicada
-                if (loading) return;
+                console.log('[BRANCH STORE] fetchBranches chamado. reset =', reset);
+                console.log('[BRANCH STORE] estado atual:', {
+                    loading,
+                    hasNext,
+                    page,
+                    branchesCount: branches.length,
+                });
 
-                // se não for reset e o backend já falou que não tem próxima, sai
+                // evita requisição duplicada
+                if (loading) {
+                    console.log('[BRANCH STORE] abortando: já está loading');
+                    return;
+                }
+
+                // se não for reset e já sabemos que não tem próxima página
                 if (!reset && !hasNext && branches.length > 0) {
+                    console.log('[BRANCH STORE] abortando: !reset, !hasNext e já tem branches');
                     return;
                 }
 
                 try {
                     set({ loading: true, error: null });
+                    console.log('[BRANCH STORE] loading = true');
 
-                    // se for reset, sempre busca página 1
                     const nextPage = reset ? 1 : page + 1;
+                    console.log('[BRANCH STORE] buscando página', nextPage);
+
                     const res = await branchService.list(nextPage);
+
+                    console.log('[BRANCH STORE] resposta branchService.list:', {
+                        items: res.items?.length,
+                        hasNext: res.hasNext,
+                    });
 
                     if (reset) {
                         set({
@@ -59,50 +77,39 @@ export const useBranchStore = create<BranchState>()(
                         });
                     }
                 } catch (err: any) {
+                    console.log('[BRANCH STORE] ERRO em fetchBranches:', err);
                     set({
                         error: err?.message ?? 'Erro ao carregar filiais',
                     });
                 } finally {
-                    // 🔥 garante que sempre vai voltar pra false
+                    console.log('[BRANCH STORE] finalizando, loading = false');
                     set({ loading: false });
                 }
             },
 
             selectBranch(branch) {
+                console.log('[BRANCH STORE] selecionando filial', {
+                    code: branch.Code,
+                    description: branch.Description,
+                });
                 set({ selectedBranch: branch });
             },
 
             clear() {
+                console.log('[BRANCH STORE] clear chamado');
                 set({
                     branches: [],
                     selectedBranch: null,
                     hasNext: false,
                     page: 1,
+                    error: null,
+                    loading: false,
                 });
             },
         }),
         {
             name: 'branch-storage',
-            // 👇 isso roda quando o persist termina de hidratar
-            onRehydrateStorage: () => (state) => {
-                // quando hidratar: força loading=false e marca hydrated=true
-                useBranchStore.setState({
-                    loading: false,
-                    hydrated: true,
-                });
-            },
-            storage: {
-                getItem: async (name) => {
-                    const value = await AsyncStorage.getItem(name);
-                    return value ? JSON.parse(value) : null;
-                },
-                setItem: async (name, value) => {
-                    await AsyncStorage.setItem(name, JSON.stringify(value));
-                },
-                removeItem: async (name) => {
-                    await AsyncStorage.removeItem(name);
-                },
-            },
+            storage: createJSONStorage(() => AsyncStorage),
         }
     )
 );

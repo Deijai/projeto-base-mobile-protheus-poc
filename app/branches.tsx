@@ -29,7 +29,6 @@ export default function BranchesScreen() {
         loading,
         hasNext,
         selectBranch,
-        hydrated,      // 👈 pega aqui
         error,
     } = useBranchStore();
 
@@ -39,15 +38,13 @@ export default function BranchesScreen() {
     const [search, setSearch] = useState('');
 
     useEffect(() => {
-        // só tenta buscar quando o store já estiver hidratado
-        if (!hydrated) return;
-
+        // sempre que entrar na tela, tenta carregar as filiais (resetando)
         fetchBranches(true).catch((err) => {
             console.error('Erro ao buscar filiais', err);
             toast.error('Erro ao buscar filiais. Faça login novamente.');
             logout();
         });
-    }, [hydrated]);
+    }, []);
 
     const filteredBranches = branches.filter((b) => {
         const term = search.toLowerCase();
@@ -69,15 +66,6 @@ export default function BranchesScreen() {
             fetchBranches(false);
         }
     };
-
-    // enquanto não hidratou, mostra um loading simples
-    if (!hydrated) {
-        return (
-            <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
-                <LoadingOverlay visible text="Preparando filiais..." />
-            </ThemedSafeArea>
-        );
-    }
 
     return (
         <ThemedSafeArea style={{ flex: 1, backgroundColor: theme.background }}>
@@ -137,7 +125,13 @@ export default function BranchesScreen() {
                                     {item.State ? `- ${item.State}` : ''}
                                 </Text>
                                 {item.Cgc ? (
-                                    <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>
+                                    <Text
+                                        style={{
+                                            color: theme.muted,
+                                            fontSize: 12,
+                                            marginTop: 4,
+                                        }}
+                                    >
                                         CNPJ: {item.Cgc}
                                     </Text>
                                 ) : null}
@@ -149,7 +143,10 @@ export default function BranchesScreen() {
                     onEndReachedThreshold={0.2}
                     ListFooterComponent={
                         loading && branches.length > 0 ? (
-                            <ActivityIndicator style={{ marginTop: 8 }} color={theme.primary} />
+                            <ActivityIndicator
+                                style={{ marginTop: 8 }}
+                                color={theme.primary}
+                            />
                         ) : null
                     }
                 />

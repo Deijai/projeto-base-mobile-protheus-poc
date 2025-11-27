@@ -66,18 +66,11 @@ export const ItemHistoryModal: React.FC<Props> = ({
                 setPage(1);
             }
 
-            console.log('📜 [ItemHistoryModal] Carregando histórico:', {
-                productCode,
-                page: reset ? 1 : page,
-            });
-
             const response = await documentService.getItemHistory(
                 productCode,
                 reset ? 1 : page,
                 30
             );
-
-            console.log('✅ [ItemHistoryModal] Response:', response);
 
             if (response?.records) {
                 if (reset) {

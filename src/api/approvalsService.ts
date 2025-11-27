@@ -67,11 +67,7 @@ export const approvalsService = {
     // src/api/approvalsService.ts
     async batchApprove(documentType: string, payload: any) {
         const docTypePath = (documentType || '').trim().toUpperCase();
-
         const url = `backofficeapprovals/api/com/approvals/v1/batchApprovals/${docTypePath}`;
-        console.log('batchApprove URL =>', url);
-        console.log('batchApprove payload =>', JSON.stringify(payload, null, 2));
-
         const res = await api.put(url, payload);
         return res.data;
     },

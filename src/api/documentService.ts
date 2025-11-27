@@ -92,13 +92,6 @@ export const documentService = {
     ): Promise<any> {
         const url = `backofficeapprovals/api/com/approvals/v1/${documentType}/${scrId}/items`;
 
-        console.log('='.repeat(80));
-        console.log('📋 [documentService] INICIANDO BUSCA DE ITENS');
-        console.log('='.repeat(80));
-        console.log('📍 URL:', url);
-        console.log('📍 Params:', { page, pageSize, itemGroup });
-        console.log('='.repeat(80));
-
         try {
             const res = await api.get(url, {
                 params: {
@@ -107,12 +100,8 @@ export const documentService = {
                     itemGroup
                 }
             });
-
-            console.log('✅ [documentService] SUCESSO!');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] ERRO AO BUSCAR ITENS');
-            console.error('❌ Status:', error?.response?.status);
             throw error;
         }
     },
@@ -125,7 +114,6 @@ export const documentService = {
         itemNumber: string,
         itemRecno: number
     ) {
-        console.log('ℹ️ [documentService] BUSCANDO INFO ADICIONAL:', { recordNumber, itemNumber, itemRecno });
 
         try {
             const res = await api.get(
@@ -139,11 +127,8 @@ export const documentService = {
                 }
             );
 
-            console.log('✅ [documentService] INFO ADICIONAL SUCESSO');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] ERRO AO BUSCAR INFO ADICIONAL');
-            console.error('❌ Status:', error?.response?.status);
             throw error;
         }
     },
@@ -152,7 +137,6 @@ export const documentService = {
      * Busca histórico de um item
      */
     async getItemHistory(productCode: string, page = 1, pageSize = 30) {
-        console.log('📜 [documentService] Buscando histórico do item:', { productCode, page, pageSize });
 
         try {
             const res = await api.get(
@@ -160,10 +144,8 @@ export const documentService = {
                 { params: { productCode, page, pageSize } }
             );
 
-            console.log('✅ [documentService] Histórico carregado');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao buscar histórico:', error);
             throw error;
         }
     },
@@ -172,17 +154,14 @@ export const documentService = {
      * Busca histórico de aprovações do documento
      */
     async getApprovalHistory(documentNumber: string) {
-        console.log('📜 [documentService] Buscando histórico de aprovações:', documentNumber);
 
         try {
             const res = await api.get(
                 `/backofficeapprovals/api/com/approvals/v1/getHistByDoc/${documentNumber}`
             );
 
-            console.log('✅ [documentService] Histórico de aprovações carregado');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao buscar histórico:', error);
             throw error;
         }
     },
@@ -196,41 +175,13 @@ export const documentService = {
         // ✅ ENDPOINT CORRETO: /listAttachments/{scrId}
         const url = `/backofficeapprovals/api/com/approvals/v1/listAttachments/${scrId}`;
 
-        console.log('='.repeat(80));
-        console.log('📎 [documentService] LISTANDO ANEXOS');
-        console.log('='.repeat(80));
-        console.log('📍 URL:', url);
-        console.log('📍 scrId:', scrId);
-        console.log('📍 Params:', { page, pageSize });
-        console.log('='.repeat(80));
-
         try {
             const res = await api.get(url, {
                 params: { page, pageSize }
             });
 
-            console.log('='.repeat(80));
-            console.log('✅ [documentService] ANEXOS LISTADOS COM SUCESSO');
-            console.log('='.repeat(80));
-            console.log('📦 Response completo:', JSON.stringify(res.data, null, 2));
-            console.log('📦 Tem items?', !!res.data?.items);
-            console.log('📦 Tem itemsAttachments?', !!res.data?.itemsAttachments);
-            console.log('📦 Quantidade:',
-                res.data?.items?.length ||
-                res.data?.itemsAttachments?.length ||
-                0
-            );
-            console.log('='.repeat(80));
-
             return res.data;
         } catch (error: any) {
-            console.log('='.repeat(80));
-            console.error('❌ [documentService] ERRO AO LISTAR ANEXOS');
-            console.log('='.repeat(80));
-            console.error('❌ URL:', url);
-            console.error('❌ Status:', error?.response?.status);
-            console.error('❌ Data:', error?.response?.data);
-            console.log('='.repeat(80));
             throw error;
         }
     },
@@ -245,13 +196,6 @@ export const documentService = {
         // Adiciona barra no final conforme log: .../0000000173/
         const url = `/backofficeapprovals/api/com/approvals/v1/attachments/${objectCode}/`;
 
-        console.log('='.repeat(80));
-        console.log('💾 [documentService] BAIXANDO ARQUIVO DO ANEXO');
-        console.log('='.repeat(80));
-        console.log('📍 URL:', url);
-        console.log('📍 objectCode:', objectCode);
-        console.log('='.repeat(80));
-
         try {
             const res = await api.get(url, {
                 params: {
@@ -260,23 +204,8 @@ export const documentService = {
                 }
             });
 
-            console.log('='.repeat(80));
-            console.log('✅ [documentService] ARQUIVO BAIXADO COM SUCESSO');
-            console.log('='.repeat(80));
-            console.log('📦 Tem base64?', !!res.data?.base64);
-            console.log('📦 Tamanho:', res.data?.base64?.length || 0, 'chars');
-            console.log('='.repeat(80));
-
             return res.data;
         } catch (error: any) {
-            console.log('='.repeat(80));
-            console.error('❌ [documentService] ERRO AO BAIXAR ARQUIVO');
-            console.log('='.repeat(80));
-            console.error('❌ URL:', url);
-            console.error('❌ objectCode:', objectCode);
-            console.error('❌ Status:', error?.response?.status);
-            console.error('❌ Data:', error?.response?.data);
-            console.log('='.repeat(80));
             throw error;
         }
     },
@@ -285,7 +214,6 @@ export const documentService = {
      * Busca rateio de SC
      */
     async getApportionmentPurchaseRequest(documentNumber: string, page = 1, pageSize = 10) {
-        console.log('💰 [documentService] Buscando rateio SC:', documentNumber);
 
         try {
             const tables = 'SCX,CTT,SC1';
@@ -319,10 +247,8 @@ export const documentService = {
                 },
             });
 
-            console.log('✅ [documentService] Rateio SC carregado');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao buscar rateio SC:', error);
             throw error;
         }
     },
@@ -331,7 +257,6 @@ export const documentService = {
      * Busca rateio de PC
      */
     async getApportionmentPurchaseOrder(documentNumber: string, page = 1, pageSize = 10) {
-        console.log('💰 [documentService] Buscando rateio PC:', documentNumber);
 
         try {
             const tables = 'SCH,CTT,SC7';
@@ -365,10 +290,8 @@ export const documentService = {
                 },
             });
 
-            console.log('✅ [documentService] Rateio PC carregado');
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao buscar rateio PC:', error);
             throw error;
         }
     },
@@ -380,7 +303,6 @@ export const documentService = {
         documentType: string,
         approvals: ApprovalAction[]
     ) {
-        console.log('✅/❌ [documentService] Confirmando aprovação:', { documentType, approvals });
 
         try {
             const body = { approvals };
@@ -390,10 +312,9 @@ export const documentService = {
                 body
             );
 
-            console.log('✅ [documentService] Aprovação confirmada');
+
             return res.data;
         } catch (error: any) {
-            console.error('❌ [documentService] Erro ao confirmar aprovação:', error);
             throw error;
         }
     },
